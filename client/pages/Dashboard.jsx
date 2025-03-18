@@ -32,9 +32,6 @@ export default function DashBoard() {
   return (
     <div className="min-h-screen">
       <HeroSection/>
-      <div className="text-xl font-semibold">
-        {address || "No Wallet Connected"}
-      </div>
 
       {!user && isPopupOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-md z-50 animate-fadeIn">

@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
-import CustomConnectButton from "../components/CustomConnectButton";
-import { motion } from "framer-motion";
-import { signInWithPopup, GithubAuthProvider } from "firebase/auth";
+import GithubProvider from "./Github";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);

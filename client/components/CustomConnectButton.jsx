@@ -18,7 +18,7 @@ export default function CustomConnectButton() {
             ) : !connected ? (
               <motion.button
                 onClick={openConnectModal}
-                className="px-6 py-3 bg-[#ff9211] text-[#0f0f0f] font-semibold rounded-full shadow-lg hover:bg-[#e0820f] transition-all duration-300 flex items-center gap-2"
+                className="px-6 py-3 bg-[#ff9211] text-[#0f0f0f] cursor-pointer font-semibold rounded-full shadow-lg hover:bg-[#e0820f] transition-all duration-300 flex items-center gap-2"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -43,7 +43,7 @@ export default function CustomConnectButton() {
                 {/* Chain Info */}
                 <motion.button
                   onClick={openChainModal}
-                  className="px-4 py-2 bg-[#0f0f0f] text-[#ff9211] border border-[#ff9211]/50 rounded-full hover:bg-[#1a1a1a] transition-all duration-300 flex items-center gap-2"
+                  className="px-4 py-2 bg-[#0f0f0f] text-[#ff9211] cursor-pointer border border-[#ff9211]/50 rounded-full hover:bg-[#1a1a1a] transition-all duration-300 flex items-center gap-2"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -55,7 +55,7 @@ export default function CustomConnectButton() {
 
                 {/* Account Info & Disconnect */}
                 <motion.div
-                  className="px-6 py-3 bg-[#0f0f0f] text-[#ff9211] border border-[#ff9211]/50 rounded-full flex items-center gap-2"
+                  className="px-6 py-3 bg-[#0f0f0f] text-[#ff9211] cursor-pointer border border-[#ff9211]/50 rounded-full flex items-center gap-2"
                   whileHover={{ scale: 1.05 }}
                 >
                   <span className="truncate max-w-[120px]">
@@ -63,7 +63,7 @@ export default function CustomConnectButton() {
                   </span>
                   <button
                     onClick={() => disconnect()}
-                    className="text-[#ff9211] hover:text-[#e0820f] transition-colors duration-200"
+                    className="text-[#ff9211] cursor-pointer hover:text-[#e0820f] transition-colors duration-200"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
