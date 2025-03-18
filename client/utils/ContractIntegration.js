@@ -1,129 +1,211 @@
-import { ethers, Contract } from "ethers";
+import { ethers } from "ethers";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
+import { parseAbi } from "viem";
 import StakingArtifact from "../json/abi/Staking.json";
 import RewardArtifact from "../json/abi/RewardDistribution.json";
 import YieldArtifact from "../json/abi/YieldPool.json";
 
-// Extract the ABI arrays from the Hardhat artifacts
 const StakingAbi = StakingArtifact.abi;
 const RewardAbi = RewardArtifact.abi;
 const YieldAbi = YieldArtifact.abi;
 
-const stakingContractAddress = "0x665cbba08eF854F342A3E3F4B7470d6B0807943E";
-const rewardContractAddress = "0x1c08eCc79C5954F023d4F5e3f1392c6f76b41FF3";
-const yieldContractAddress = "0x8BFA062Cba288668D46958288cF0F4B43bC8D92a";
+const stakingContractAddress = "0x8f90426F741B7CbF71954048Fe1c975749B17f3c";
+const rewardContractAddress = "0x9B9446e6d0CDcf773d74E954F4cD61ee213aAc17";
+const yieldContractAddress = "0xA87e632f680A458b9eFb319a2448bC45E6C52117";
 
-/**
- * Hook to initialize contracts using wagmi, ensuring wallet connection and signer availability
- */
+const EXPECTED_CHAIN_ID = 1114;
+
 export function useContracts() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, connector } = useAccount();
   const publicClient = usePublicClient();
-  const { data: walletClient, isLoading: walletClientLoading } = useWalletClient();
+  const { data: walletClient, isLoading: walletClientLoading, error: walletClientError } = useWalletClient();
 
-  // If wallet isn’t connected, return a minimal state
-  if (!isConnected) {
-    console.warn("Wallet not connected. Contracts cannot be initialized.");
-    return { isConnected: false, isLoading: false };
-  }
-
-  // If wallet client is loading, return a loading state
-  if (walletClientLoading) {
-    return { isConnected: true, isLoading: true };
-  }
-
-  // If walletClient isn’t available after loading, return an error state
-  if (!walletClient) {
-    console.error("Wallet client (signer) not available after loading.");
-    return { isConnected: true, isLoading: false, error: "Signer not found" };
-  }
-
-  // Use publicClient as provider and walletClient as signer
-  const provider = publicClient;
-  const signer = walletClient;
-
-  // Initialize contracts with the signer
-  const stakingContract = new Contract(stakingContractAddress, StakingAbi, signer);
-  const rewardContract = new Contract(rewardContractAddress, RewardAbi, signer);
-  const yieldContract = new Contract(yieldContractAddress, YieldAbi, signer);
-
-  return {
-    provider,
-    signer,
+  console.log("useContracts state:", {
+    isConnected,
+    walletClientLoading,
+    walletClientExists: !!walletClient,
+    walletClientError,
+    connector: connector?.name,
     address,
-    stakingContract,
-    rewardContract,
-    yieldContract,
-    isConnected: true,
-    isLoading: false,
-  };
-}
+    chainId: walletClient ? walletClient.chain?.id : "unknown",
+  });
 
-/**
- * Utility function to ensure wallet connection and contract availability
- */
-function ensureContractReady(contract, isConnected) {
-  if (!isConnected) {
-    throw new Error("Wallet must be connected to perform this action.");
+  if (!Array.isArray(StakingAbi) || !Array.isArray(RewardAbi) || !Array.isArray(YieldAbi)) {
+    console.error("Invalid ABI format:", { StakingAbi, RewardAbi, YieldAbi });
+    return { isConnected: false, isLoading: false, error: "Invalid contract ABI format" };
   }
-  if (!contract) {
-    throw new Error("Contract not initialized. Ensure wallet is connected and signer is available.");
-  }
-}
 
-/**
- * Stake tokens in the staking contract
- */
-export async function stakeTokens(contract, amount, isConnected) {
-  ensureContractReady(contract, isConnected);
+  if (!isConnected || !address) {
+    console.warn("Wallet not connected or address not available.");
+    return { isConnected: false, isLoading: false, error: null };
+  }
+
+  if (walletClientLoading) {
+    console.log("Wallet client still loading...");
+    return { isConnected: true, isLoading: true, error: null };
+  }
+
+  if (walletClientError) {
+    console.error("Wallet client error:", walletClientError);
+    return { isConnected: true, isLoading: false, error: `Wallet client error: ${walletClientError.message}` };
+  }
+
+  if (!walletClient) {
+    console.error("Wallet client not available after loading.", { connector: connector?.name, address });
+    return { isConnected: true, isLoading: false, error: "Wallet client (signer) not available. Please reconnect your wallet." };
+  }
+
+  const currentChainId = walletClient.chain?.id;
+  if (currentChainId !== EXPECTED_CHAIN_ID) {
+    console.error("Chain mismatch:", { currentChainId, expectedChainId: EXPECTED_CHAIN_ID });
+    return {
+      isConnected: true,
+      isLoading: false,
+      error: `Please switch to tCORE testnet (Chain ID: ${EXPECTED_CHAIN_ID}). Current chain: ${currentChainId}`,
+    };
+  }
+
   try {
-    const tx = await contract.stake(ethers.parseEther(amount), { gasLimit: 500000 });
-    await tx.wait();
-    console.log("Staking successful");
-    return tx;
+    const provider = publicClient; // viem PublicClient
+    const signer = walletClient;   // viem WalletClient
+
+    const stakingContract = new ethers.Contract(stakingContractAddress, StakingAbi, signer);
+    const stakingContractRead = new ethers.Contract(stakingContractAddress, StakingAbi, provider); // For read-only
+    const rewardContract = new ethers.Contract(rewardContractAddress, RewardAbi, signer);
+    const yieldContract = new ethers.Contract(yieldContractAddress, YieldAbi, signer);
+
+    console.log("Contracts initialized for address:", address);
+    return {
+      provider,
+      signer,
+      address,
+      stakingContract,
+      stakingContractRead, // Added for read-only operations
+      rewardContract,
+      yieldContract,
+      isConnected: true,
+      isLoading: false,
+      error: null,
+    };
+  } catch (error) {
+    console.error("Error initializing contracts:", error);
+    return { isConnected: true, isLoading: false, error: error.message };
+  }
+}
+
+function ensureContractReady(contract, isConnected, signer, provider, address, requiresSigner = true) {
+  if (!isConnected) throw new Error("Wallet must be connected.");
+  if (!contract) throw new Error("Contract not initialized.");
+  if (requiresSigner && (!signer || !signer.account?.address)) throw new Error("Signer not available or invalid.");
+  if (!provider) throw new Error("Provider not available.");
+  if (!address) throw new Error("Address not available.");
+}
+
+export async function stakeTokens(contract, amount, isConnected, signer, provider, fallbackAddress) {
+  ensureContractReady(contract, isConnected, signer, provider, fallbackAddress, true);
+
+  try {
+    let userAddress = signer.account.address || fallbackAddress;
+    console.log("Staking from address:", userAddress);
+
+    if (!userAddress || typeof userAddress !== "string") {
+      throw new Error("Invalid user address: " + userAddress);
+    }
+
+    const stakeAmount = ethers.parseEther(amount);
+    console.log("Staking amount:", ethers.formatEther(stakeAmount), "tCORE2");
+
+    console.log("Checking balance for address:", userAddress);
+    const balance = await provider.getBalance({ address: userAddress });
+    console.log("Wallet tCORE2 balance:", ethers.formatEther(balance), "tCORE2");
+
+    if (balance < stakeAmount) {
+      throw new Error("Insufficient tCORE balance to stake.");
+    }
+
+    console.log("Staking tokens...");
+    const stakeTx = await contract.stake({ value: stakeAmount, gasLimit: 500000 });
+    console.log("Waiting for transaction to be mined...");
+    const receipt = await stakeTx.wait();
+    console.log("Tokens staked! Transaction hash:", receipt.hash);
+
+    const userStake = await contract.stakes(userAddress);
+    console.log("Staked amount:", ethers.formatEther(userStake.amount), "tCORE");
+    console.log("Last staked time:", userStake.lastStakedTime.toString());
+
+    return receipt;
   } catch (error) {
     console.error("Error staking tokens:", error);
     throw error;
   }
 }
 
-/**
- * Unstake tokens from the staking contract
- */
-export async function unstakeTokens(contract, amount, isConnected) {
-  ensureContractReady(contract, isConnected);
+export async function getUserStake(contract, userAddress, isConnected, provider) {
+  ensureContractReady(contract, isConnected, null, provider, userAddress, false);
+
   try {
-    const tx = await contract.unstake(ethers.parseEther(amount), { gasLimit: 500000 });
-    await tx.wait();
-    console.log("Unstaking successful");
-    return tx;
+    const stakingAbi = parseAbi([
+      "function stakes(address) view returns (uint256 amount, uint256 lastStakedTime)",
+    ]);
+    const userStake = await provider.readContract({
+      address: stakingContractAddress,
+      abi: stakingAbi,
+      functionName: "stakes",
+      args: [userAddress],
+    });
+    console.log("Raw userStake from Viem:", userStake); // Debug raw response
+    return {
+      amount: userStake[0], // BigInt from Viem
+      lastStakedTime: userStake[1], // BigInt from Viem
+    };
+  } catch (error) {
+    console.error("Error fetching user stake:", error);
+    throw error;
+  }
+}
+
+export async function unstakeTokens(contract, amount, isConnected, signer, provider) {
+  ensureContractReady(contract, isConnected, signer, provider);
+  try {
+    const stakeAmount = ethers.parseEther(amount);
+    console.log("Unstaking amount:", ethers.formatEther(stakeAmount), "tCORE");
+
+    const userAddress = signer.account.address;
+    const userStake = await contract.stakes(userAddress);
+    if (userStake.amount < stakeAmount) {
+      throw new Error("Insufficient staked amount to unstake.");
+    }
+
+    console.log("Unstaking tokens...");
+    const unstakeTx = await contract.unstake(stakeAmount, { gasLimit: 500000 });
+    console.log("Waiting for transaction to be mined...");
+    const receipt = await unstakeTx.wait();
+    console.log("Unstaking successful! Transaction hash:", receipt.hash);
+
+    return receipt;
   } catch (error) {
     console.error("Error unstaking tokens:", error);
     throw error;
   }
 }
 
-/**
- * Claim rewards from the reward contract
- */
-export async function claimRewards(contract, isConnected) {
-  ensureContractReady(contract, isConnected);
+export async function claimRewards(contract, isConnected, signer, provider) {
+  ensureContractReady(contract, isConnected, signer, provider);
   try {
+    console.log("Claiming rewards...");
     const tx = await contract.claimReward({ gasLimit: 500000 });
-    await tx.wait();
-    console.log("Rewards claimed successfully");
-    return tx;
+    console.log("Waiting for transaction to be mined...");
+    const receipt = await tx.wait();
+    console.log("Rewards claimed successfully! Transaction hash:", receipt.hash);
+    return receipt;
   } catch (error) {
     console.error("Error claiming rewards:", error);
     throw error;
   }
 }
 
-/**
- * Get total staked tokens in the staking contract (read-only, uses provider)
- */
-export async function getTotalStaked(contract, isConnected) {
-  ensureContractReady(contract, isConnected);
+export async function getTotalStaked(contract, isConnected, provider) {
+  ensureContractReady(contract, isConnected, null, provider);
   try {
     const totalStaked = await contract.getTotalStaked();
     return totalStaked;
@@ -133,27 +215,12 @@ export async function getTotalStaked(contract, isConnected) {
   }
 }
 
-/**
- * Get the user's stake amount
- */
-export async function getUserStake(contract, userAddress, isConnected) {
-  ensureContractReady(contract, isConnected);
+// RewardDistribution doesn't have a rewardBalance function, so this is not applicable
+export async function getRewardBalance(contract, userAddress, isConnected, provider) {
+  ensureContractReady(contract, isConnected, null, provider);
   try {
-    const stake = await contract.stakes(userAddress);
-    return stake;
-  } catch (error) {
-    console.error("Error getting user stake:", error);
-    throw error;
-  }
-}
-
-/**
- * Get the user's reward balance
- */
-export async function getRewardBalance(contract, userAddress, isConnected) {
-  ensureContractReady(contract, isConnected);
-  try {
-    const balance = await contract.rewardBalance(userAddress);
+    // Since RewardDistribution doesn't track balances, we can check contract balance as a proxy
+    const balance = await provider.getBalance(rewardContractAddress);
     return balance;
   } catch (error) {
     console.error("Error getting reward balance:", error);
@@ -161,34 +228,12 @@ export async function getRewardBalance(contract, userAddress, isConnected) {
   }
 }
 
-/**
- * Set the reward rate for the reward contract
- */
-export async function setRewardRate(contract, newRate, isConnected) {
-  ensureContractReady(contract, isConnected);
-  try {
-    const tx = await contract.setRewardRate(newRate, { gasLimit: 500000 });
-    await tx.wait();
-    console.log("Reward rate updated");
-    return tx;
-  } catch (error) {
-    console.error("Error setting reward rate:", error);
-    throw error;
-  }
-}
+// // No setRewardRate function exists in RewardDistribution
+// export async function setRewardRate(contract, newRate, isConnected, signer, provider) {
+//   throw new Error("setRewardRate is not supported by the RewardDistribution contract.");
+// }
 
-/**
- * Set the yield rate for the yield contract
- */
-export async function setYieldRate(contract, newRate, isConnected) {
-  ensureContractReady(contract, isConnected);
-  try {
-    const tx = await contract.setYieldRate(newRate, { gasLimit: 500000 });
-    await tx.wait();
-    console.log("Yield rate updated");
-    return tx;
-  } catch (error) {
-    console.error("Error setting yield rate:", error);
-    throw error;
-  }
-}
+// // No setYieldRate function exists in YieldPool
+// export async function setYieldRate(contract, newRate, isConnected, signer, provider) {
+//   throw new Error("setYieldRate is not supported by the YieldPool contract.");
+// }
