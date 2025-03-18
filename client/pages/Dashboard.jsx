@@ -2,7 +2,7 @@ import { useAccount } from "wagmi";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { useEffect, useState } from "react";
 import GithubProvider from "../components/GithubProvider";
-import { HeroSection } from "../components/Hero";
+import { HeroSection } from "../components/HeroSection";
 
 export default function DashBoard() {
   const { address } = useAccount();
