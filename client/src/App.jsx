@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Navbar } from "../components/navbar";
 import HomePage from "../pages/Home";
 import Dashboard from "../pages/Dashboard";
+import { ProtectedRoute } from "./Providers/Protected";
 
 const App = () => {
   return (
@@ -10,7 +11,14 @@ const App = () => {
       <Navbar />
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   );
