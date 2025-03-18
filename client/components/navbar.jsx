@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
-import GithubProvider from "./Github";
+import GithubProvider from "../components/GithubProvider";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
