@@ -1,5 +1,5 @@
 import { useAccount } from "wagmi";
-import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
 import GithubProvider from "../components/GithubProvider";
 import { HeroSection } from "../components/HeroSection";
@@ -30,14 +30,7 @@ export default function DashBoard() {
   }, [auth]);
 
   return (
-<<<<<<< HEAD
-    <div className="min-h-screen">
-      <HeroSection/>
-      <div className="text-xl font-semibold">
-        {address || "No Wallet Connected"}
-      </div>
-=======
-    <div className="flex flex-col items-center justify-center min-h-screen">
+    <div className="min-h-screen flex flex-col items-center justify-center">
       <div className="w-full max-w-6xl mx-auto p-6">
         <div className="bg-gradient-to-br from-blue-50 via-white to-gray-50 rounded-2xl shadow-xl p-8">
           {/* Profile Header with Tier */}
@@ -85,7 +78,6 @@ export default function DashBoard() {
               </div>
             </div>
           </div>
->>>>>>> 943f84f (api)
 
           {/* Core Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
