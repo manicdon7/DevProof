@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import GithubProvider from "../components/GithubProvider";
 import CustomConnectButton from "../components/CustomConnectButton";
 import { motion } from "framer-motion";
 import { signInWithPopup, GithubAuthProvider } from "firebase/auth";
