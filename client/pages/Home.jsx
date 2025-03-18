@@ -31,7 +31,7 @@ export default function HomePage() {
             githubUid: githubUser.uid, // Store GitHub UID for reference
           });
           Cookies.set("address", data);
-          navigate("/dashboard");
+          navigate("/staketoken");
         }
       } catch (error) {
         console.error("Error in AuthRedirect:", error);

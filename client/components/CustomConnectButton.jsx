@@ -1,24 +1,26 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useDisconnect } from "wagmi"; // Only keep useDisconnect since it's used
+import { useWalletClient, useDisconnect, useAccount } from "wagmi";
 import { motion } from "framer-motion";
 
 export default function CustomConnectButton() {
   const { disconnect } = useDisconnect();
+  const { isConnected } = useAccount(); // To check connection status
+  const { data: walletClient, isLoading: walletClientLoading } = useWalletClient(); // Wallet client instance
 
   return (
     <ConnectButton.Custom>
       {({ account, chain, openChainModal, openConnectModal, mounted }) => {
-        const ready = mounted;
-        const connected = ready && account && chain;
+        const ready = mounted && !walletClientLoading; // Ensure wallet client is ready
+        const connected = ready && isConnected && account && chain && walletClient; // Explicitly check walletClient
 
         return (
           <div>
             {!ready ? (
-              <span className="text-gray-500">Loading...</span>
+              <span className="text-gray-500 font-lexend">Loading...</span>
             ) : !connected ? (
               <motion.button
                 onClick={openConnectModal}
-                className="px-6 py-3 bg-[#ff9211] text-[#0f0f0f] cursor-pointer font-semibold rounded-full shadow-lg hover:bg-[#e0820f] transition-all duration-300 flex items-center gap-2"
+                className="px-6 py-3 bg-[#ff9211] text-[#0f0f0f] cursor-pointer font-rubik font-semibold rounded-full shadow-lg hover:bg-[#e0820f] transition-all duration-300 flex items-center gap-2 text-base"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -43,7 +45,7 @@ export default function CustomConnectButton() {
                 {/* Chain Info */}
                 <motion.button
                   onClick={openChainModal}
-                  className="px-4 py-2 bg-[#0f0f0f] text-[#ff9211] cursor-pointer border border-[#ff9211]/50 rounded-full hover:bg-[#1a1a1a] transition-all duration-300 flex items-center gap-2"
+                  className="px-4 py-2 bg-[#0f0f0f] text-[#ff9211] cursor-pointer border border-[#ff9211]/50 rounded-full hover:bg-[#1a1a1a] transition-all duration-300 flex items-center gap-2 font-rubik font-medium text-base"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -55,7 +57,7 @@ export default function CustomConnectButton() {
 
                 {/* Account Info & Disconnect */}
                 <motion.div
-                  className="px-6 py-3 bg-[#0f0f0f] text-[#ff9211] cursor-pointer border border-[#ff9211]/50 rounded-full flex items-center gap-2"
+                  className="px-6 py-3 bg-[#0f0f0f] text-[#ff9211] border border-[#ff9211]/50 rounded-full flex items-center gap-2 font-rubik font-medium text-base"
                   whileHover={{ scale: 1.05 }}
                 >
                   <span className="truncate max-w-[120px]">

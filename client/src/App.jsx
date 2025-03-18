@@ -8,6 +8,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase.config";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Stake from "../pages/Stake";
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -27,6 +28,14 @@ const App = () => {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+      <Route
+          path="/staketoken"
+          element={
+            <ProtectedRoute>
+              <Stake />
             </ProtectedRoute>
           }
         />
