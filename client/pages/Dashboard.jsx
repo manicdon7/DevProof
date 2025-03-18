@@ -1,7 +1,8 @@
 import { useAccount } from "wagmi";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { useEffect, useState } from "react";
-import GithubProvider from "../components/Github";
+import GithubProvider from "../components/GithubProvider";
+import { HeroSection } from "../components/HeroSection";
 
 export default function DashBoard() {
   const { address } = useAccount();
@@ -29,7 +30,8 @@ export default function DashBoard() {
   }, [auth]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
+    <div className="min-h-screen">
+      <HeroSection/>
       <div className="text-xl font-semibold">
         {address || "No Wallet Connected"}
       </div>

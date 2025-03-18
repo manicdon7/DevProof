@@ -1,1 +1,76 @@
 @import "tailwindcss";
+
+@animate-pulse-slow {
+    animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+@font-face {
+    font-family: 'Lexend';
+    src: url('../public/fonts/Lexend[wght].ttf') format('truetype');
+    font-weight: 400;
+    /* Regular weight */
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Rubik';
+    src: url('../public/fonts/Rubik-Regular.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+.Toastify__toast {
+    background: #0f0f0f !important; /* Background matches your theme */
+    color: #ffffff !important; /* White text for readability */
+    font-family: 'Lexend', sans-serif !important; /* Matches your body font */
+    border: 1px solid #ff9211 !important; /* Orange border for accent */
+    border-radius: 8px !important; /* Slightly rounded corners */
+  }
+  
+  /* Toast title (e.g., success, error messages) */
+  .Toastify__toast-body {
+    font-size: 16px !important;
+  }
+  
+  /* Progress bar styling */
+  .Toastify__progress-bar {
+    background: #ff9211 !important; /* Orange progress bar */
+  }
+  
+  /* Specific toast types */
+  .Toastify__toast--info {
+    background: #0f0f0f !important;
+    color: #ff9211 !important; /* Orange text for info messages */
+  }
+  
+  .Toastify__toast--success {
+    background: #0f0f0f !important;
+    color: #ffffff !important; /* White text for success */
+  }
+  
+  .Toastify__toast--error {
+    background: #0f0f0f !important;
+    color: #ff9211 !important; /* Orange text for errors */
+  }
+  
+  /* Close button styling */
+  .Toastify__close-button {
+    color: #ff9211 !important; /* Orange close icon */
+  }
+  
+  /* Ensure progress bar height and animation */
+  .Toastify__progress-bar--animated {
+    height: 4px !important; /* Thicker progress bar for visibility */
+  }

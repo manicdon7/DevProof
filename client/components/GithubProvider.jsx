@@ -7,6 +7,7 @@ export default function GithubProvider() {
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
+
     } catch (error) {
       throw new Error(error);
     }
