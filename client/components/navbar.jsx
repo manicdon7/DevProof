@@ -34,14 +34,15 @@ export function Navbar() {
     <header className="p-4 bg-[#0f0f0f] shadow-lg sticky top-0 z-50 font-lexend">
       <div className="container flex items-center justify-between h-16 mx-auto">
         <a href="#" className="flex items-center gap-2 text-lg font-rubik font-semibold">
-          <svg
+          <img src="https://res.cloudinary.com/dvgpzftnf/image/upload/v1742354002/dlb5hxzojllagi8t9xch.png" alt="DevProof Logo" className="w-8 h-8" />
+          {/* <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="currentColor"
             viewBox="0 0 32 32"
             className="w-8 h-8 text-[#ff9211]"
           >
             <path d="M27.912 7.289l-10.324-5.961c-0.455-0.268-1.002-0.425-1.588-0.425s-1.133 0.158-1.604 0.433l0.015-0.008-10.324 5.961c-0.955 0.561-1.586 1.582-1.588 2.75v11.922c0.002 1.168 0.635 2.189 1.574 2.742l0.016 0.008 10.322 5.961c0.455 0.267 1.004 0.425 1.59 0.425 0.584 0 1.131-0.158 1.602-0.433l-0.014 0.008 10.322-5.961c0.955-0.561 1.586-1.582 1.588-2.75v-11.922c-0.002-1.168-0.633-2.189-1.573-2.742z"></path>
-          </svg>
+          </svg> */}
           <span className="text-white bg-gradient-to-r from-[#ff9211] to-[#e0820f] bg-clip-text text-transparent">
             DevProof
           </span>
@@ -109,7 +110,8 @@ export function Navbar() {
           className="p-2 lg:hidden focus:outline-none focus:ring-2 focus:ring-[#ff9211] rounded-md"
           onClick={() => setIsOpen(!isOpen)}
         >
-          <svg
+          <img src="https://res.cloudinary.com/dvgpzftnf/image/upload/v1742354002/dlb5hxzojllagi8t9xch.png" alt="DevProof Logo" className="w-8 h-8" />
+          {/* <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -122,7 +124,7 @@ export function Navbar() {
               strokeWidth="2"
               d="M4 6h16M4 12h16M4 18h16"
             />
-          </svg>
+          </svg> */}
         </button>
       </div>
 
