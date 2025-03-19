@@ -180,8 +180,7 @@ export const fetchUserIssues = async (username, token) => {
 export const fetchRepoContents = async (username, repo, token) => {
   const api = createApi(token);
   const response = await api.get(`/repos/${username}/${repo}/contents`);
-  const data = await response.json();
-  return data;
+  return response.data;
 };
 
 export const fetchRepoLanguages = async (owner, repo, token) => {

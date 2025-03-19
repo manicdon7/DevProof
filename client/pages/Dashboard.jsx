@@ -21,6 +21,7 @@ export default function DashBoard() {
   const auth = getAuth();
   const [user, setUser] = useState(null);
   const [commitStats, setCommitStats] = useState(null);
+  const [profitYield, setProfitYield] = useState(null);
   const [star, setStar] = useState(null);
   const { Token } = useUserContext();
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -98,7 +99,6 @@ export default function DashBoard() {
     };
     fetchData();
 
-    console.log(token);
     const fetchCommitStats = async () => {
       try {
         const events = await fetchUserEvents(
@@ -172,9 +172,46 @@ export default function DashBoard() {
       if (user?.reloadUserInfo?.screenName) {
         try {
           const service = githubService();
-          const res = await service.repo(user.reloadUserInfo.screenName, token);
+          const repoNames = await service.repo(
+            user.reloadUserInfo.screenName,
+            token
+          );
 
-          // await fetchRepoContents(user.reloadUserInfo.screenName, res, token);
+          if (!Array.isArray(repoNames) || repoNames.length === 0) {
+            console.log("No repositories found or invalid data.");
+            return;
+          }
+
+          let names = [];
+
+          for (const repoName of repoNames) {
+            const repoContent = await fetchRepoContents(
+              user.reloadUserInfo.screenName,
+              repoName,
+              token
+            );
+
+            if (repoContent) {
+              names.push({ repoName, content: repoContent });
+            }
+          }
+
+          const reposWithMdCount = names.map((repo) => ({
+            repoName: repo.repoName,
+            content: repo.content,
+            mdCount: repo.content.filter((file) => file.name.endsWith(".md"))
+              .length,
+          }));
+
+          const maxMdCount = Math.max(
+            ...reposWithMdCount.map((r) => r.mdCount)
+          );
+
+          const reposWithoutMaxMd = reposWithMdCount
+            .filter((r) => r.mdCount < maxMdCount)
+            .map((r) => ({ repoName: r.repoName, content: r.content }));
+
+          setProfitYield(reposWithoutMaxMd.length);
         } catch (error) {
           console.error("Error fetching repos:", error);
         }
@@ -415,39 +452,56 @@ export default function DashBoard() {
             </div>
           </div>
 
-          {/* Points Breakdown */}
           <div className="bg-white p-6 rounded-xl shadow-sm">
             <h3 className="text-sm text-gray-600 mb-4">Points Breakdown</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">
-                  Repositories ({repos.repos ? repos.repos.length : 0} X 5)
+                  Repositories ({profitYield})
                 </span>
-                <span className="font-semibold text-green-600">210</span>
+                <span className="font-semibold text-green-600">
+                  {profitYield * 5}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Followers (128 × 10)</span>
-                <span className="font-semibold text-green-600">1,280</span>
+                <span className="text-gray-500">
+                  Followers ({userData ? userData.followers : 0})
+                </span>
+                <span className="font-semibold text-green-600">
+                  {userData ? userData.followers * 2 : 0}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Commits (1,234 × 2)</span>
-                <span className="font-semibold text-green-600">2,468</span>
+                <span className="text-gray-500">
+                  Commits ({commitStats?.totalCommits})
+                </span>
+                <span className="font-semibold text-green-600">
+                  {commitStats?.totalCommits * 10}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Stars (89 × 15)</span>
-                <span className="font-semibold text-green-600">1,335</span>
+                <span className="text-gray-500">Stars ({repos.star})</span>
+                <span className="font-semibold text-green-600">
+                  {repos.star * 5}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">PRs Merged (28 × 25)</span>
-                <span className="font-semibold text-green-600">700</span>
+                <span className="text-gray-500">
+                  PRs Merged ({pr.mergedPrCount})
+                </span>
+                <span className="font-semibold text-green-600">
+                  {pr.mergedPrCount * 20}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Packages (8 × 30)</span>
+                <span className="text-gray-500">Packages (8)</span>
                 <span className="font-semibold text-green-600">240</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Issues Closed (42 × 15)</span>
-                <span className="font-semibold text-green-600">630</span>
+                <span className="text-gray-500">
+                  Issues Closed ({Issue.closed})
+                </span>
+                <span className="font-semibold text-green-600">{ Issue.closed * 5 }</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Code Reviews (23 × 10)</span>
