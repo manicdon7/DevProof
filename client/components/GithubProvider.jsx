@@ -7,7 +7,6 @@ export default function GithubProvider() {
   const Provider = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
-      console.log(result);
       if (result && result.user) {
         sessionStorage.setItem(
           "oauthAccessToken",

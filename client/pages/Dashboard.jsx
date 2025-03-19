@@ -6,6 +6,7 @@ import {
   calculateStats,
   fetchAllReviews,
   fetchRepoContents,
+  fetchRepoWatchers,
   fetchStarredRepos,
   fetchUserData,
   fetchUserEvents,
@@ -13,6 +14,8 @@ import {
   fetchUserPRs,
   fetchUserRepos,
   getCommitStats,
+  getLastUpdatedForAllRepositories,
+  getTotalForksForAllRepositories,
   IssueClassify,
 } from "../src/Api/Github";
 import { useUserContext } from "../context";
@@ -24,7 +27,10 @@ export default function DashBoard() {
   const auth = getAuth();
   const [user, setUser] = useState(null);
   const [commitStats, setCommitStats] = useState(null);
+  const [Latest, setLatest] = useState(null);
   const [profitYield, setProfitYield] = useState(null);
+  const [watcher, setwatcher] = useState(0);
+  const [specIssue, setSpecissue] = useState(null);
   const [star, setStar] = useState(null);
   const { Token } = useUserContext();
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -49,6 +55,7 @@ export default function DashBoard() {
     sum();
   });
   const [review, setReview] = useState(null);
+  const [forked, setForked] = useState(null);
   const [Issue, setIssue] = useState({
     total: 0,
     openissue: 0,
@@ -84,8 +91,10 @@ export default function DashBoard() {
 
   useEffect(() => {
     if (user) {
+      let token = null;
       const fetchRepo = async () => {
         try {
+          token = sessionStorage.getItem("oauthAccessToken");
           const Key = sessionStorage.getItem("oauthAccessToken");
           const repo = await fetchUserRepos(
             user.reloadUserInfo.screenName,
@@ -104,6 +113,32 @@ export default function DashBoard() {
         }
       };
       fetchRepo();
+
+      const getLatest = async () => {
+        try {
+          if (user?.reloadUserInfo?.screenName) {
+            const userScreenName = user.reloadUserInfo.screenName;
+
+            getLastUpdatedForAllRepositories(userScreenName, token)
+              .then((latestUpdatedDate) => {
+                if (latestUpdatedDate) {
+                  const date = new Date(latestUpdatedDate);
+                  const formattedDate = date.toLocaleString();
+                  setLatest(formattedDate);
+                } else {
+                  console.log("No recent updates found.");
+                }
+              })
+              .catch((error) => {
+                console.error("Error fetching latest update date:", error);
+              });
+          }
+        } catch (error) {
+          console.error("Error in getLatest function:", error);
+        }
+      };
+
+      getLatest();
     }
   }, [user]);
 
@@ -157,6 +192,24 @@ export default function DashBoard() {
 
     fetchstarredRepos();
 
+    const getForked = async () => {
+      if (user?.reloadUserInfo?.screenName) {
+        try {
+          const res = await getTotalForksForAllRepositories(
+            user.reloadUserInfo.screenName,
+            token
+          );
+
+          console.log(res);
+          setForked(res);
+        } catch (error) {
+          throw new Error(error);
+        }
+      }
+    };
+
+    getForked();
+
     const fetchPr = async () => {
       if (user?.reloadUserInfo?.screenName) {
         try {
@@ -182,7 +235,8 @@ export default function DashBoard() {
 
           if (res?.specialIssues?.length > 0) {
             setIssue(res);
-            IssueClassify(res.specialIssues);
+            const resp = await IssueClassify(res.specialIssues);
+            setSpecissue(resp.priority);
           } else {
             console.warn("No special issues found.");
           }
@@ -261,6 +315,46 @@ export default function DashBoard() {
     };
 
     getReviews();
+
+    const GetWatchers = async () => {
+      try {
+        if (user?.reloadUserInfo?.screenName) {
+          const service = githubService();
+          const repoNames = await service.repo(
+            user.reloadUserInfo.screenName,
+            token
+          );
+
+          if (!Array.isArray(repoNames) || repoNames.length === 0) {
+            return;
+          }
+
+          let watchersData = [];
+
+          for (const repoName of repoNames) {
+            const repoWatchers = await fetchRepoWatchers(
+              user.reloadUserInfo.screenName,
+              repoName,
+              token
+            );
+
+            const watchersCount = repoWatchers?.watchers?.watchers_count;
+
+            if (watchersCount && watchersCount !== 0) {
+              watchersData.push({ repoName, watchers: repoWatchers });
+            }
+          }
+
+          if (watchersData.length > 0) {
+            setwatcher(watchersData);
+          }
+        }
+      } catch (error) {
+        console.error("Error in GetWatchers:", error);
+      }
+    };
+
+    GetWatchers();
   }, [user]);
 
   return (
@@ -562,15 +656,15 @@ export default function DashBoard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-300">
               <div className="flex justify-between hover:text-orange-400 transition-colors duration-200">
                 <span>Total Watchers</span>
-                <span className="font-semibold">95</span>
+                <span className="font-semibold">{watcher}</span>
               </div>
               <div className="flex justify-between hover:text-orange-400 transition-colors duration-200">
                 <span>Open Issues</span>
-                <span className="font-semibold">14</span>
+                <span className="font-semibold">{Issue.openissue}</span>
               </div>
               <div className="flex justify-between hover:text-orange-400 transition-colors duration-200">
                 <span>Total Forks</span>
-                <span className="font-semibold">150</span>
+                <span className="font-semibold">{forked}</span>
               </div>
               <div className="flex justify-between hover:text-orange-400 transition-colors duration-200">
                 <span>Current Streak</span>
@@ -578,18 +672,17 @@ export default function DashBoard() {
               </div>
               <div className="flex justify-between hover:text-orange-400 transition-colors duration-200">
                 <span>Top Repo Stars</span>
-                <span className="font-semibold">120</span>
+                <span className="font-semibold">{repos.star}</span>
               </div>
               <div className="flex justify-between hover:text-orange-400 transition-colors duration-200">
                 <span>Last Updated</span>
-                <span className="font-semibold">Mar 15, 2025</span>
+                <span className="font-semibold">{Latest}</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Popup */}
       {!user && isPopupOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/85 backdrop-blur-lg z-50 animate-slideIn">
           <div className="bg-gray-900/90 p-8 rounded-2xl shadow-2xl max-w-sm w-full border border-orange-500/50 relative transform transition-all duration-300 hover:scale-105">
@@ -597,7 +690,7 @@ export default function DashBoard() {
               className="absolute top-4 right-4 text-gray-400 hover:text-orange-400 transition-colors duration-300"
               onClick={() => setIsPopupOpen(false)}
             >
-              <span className="text-2xl">×</span>
+              <span className="text-2xl">X</span>
             </button>
             <h2 className="text-2xl font-bold text-center mb-6 text-orange-400 tracking-wide animate-fadeIn">
               Welcome to Your Dashboard
