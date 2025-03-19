@@ -81,7 +81,7 @@ function registrationEmailTemplate(name) {
           <p>Hello <strong>${name}</strong>,</p>
           <p>We're thrilled to have you join <span class="highlight">DevProof</span> — the platform rewarding open-source excellence on the Core Blockchain!</p>
           <p>Stake CORE tokens, contribute to GitHub, and earn rewards powered by AI-driven scoring. Your journey to recognition and earnings starts now!</p>
-          <a href="https://devproof.vercel.app/" class="cta-button">Get Started</a>
+          <a href="https://dev-proof.vercel.app/" class="cta-button">Get Started</a>
           <p>Need help? Reach out to our support team anytime.</p>
           <p>Happy coding,</p>
           <p><strong>The DevProof Team</strong></p>
@@ -176,7 +176,7 @@ function registrationEmailTemplate(name) {
           <p>Hello ${name},</p>
           <p>You’ve made it to the <span class="highlight">Top 5 Contributors</span> this week on <span class="highlight">DevProof</span>!</p>
           <p>Your outstanding contributions to open-source projects on the Core Blockchain have earned you a spot among the best. Check out the leaderboard to see your ranking and claim your rewards!</p>
-          <a href="https://devproof.vercel.app/leaderboard" class="cta-button">View Leaderboard</a>
+          <a href="https://dev-proof.vercel.app/leaderboard" class="cta-button">View Leaderboard</a>
           <p>Keep coding and climbing the ranks!</p>
           <p>Best regards,</p>
           <p><strong>The DevProof Team</strong></p>
@@ -288,7 +288,7 @@ function registrationEmailTemplate(name) {
             <li>Earn rewards based on AI-powered scoring</li>
             <li>Climb the weekly leaderboard</li>
           </ul>
-          <a href="https://devproof.vercel.app/dashboard" class="cta-button">Go to Dashboard</a>
+          <a href="https://dev-proof.vercel.app/dashboard" class="cta-button">Go to Dashboard</a>
           <p>Questions? Our support team is here to help.</p>
           <p>Best regards,</p>
           <p><strong>The DevProof Team</strong></p>
