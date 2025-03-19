@@ -174,10 +174,8 @@ export const fetchUserIssues = async (username, token) => {
 
   const specialIssuesClosed = issueItems
     .filter(
-      (issue) =>
-        issue.state === "closed" &&
-        issue.labels.length > 0 &&
-        issue.user?.login !== username
+      (issue) => issue.state === "closed" && issue.labels.length > 0
+      // issue.user?.login !== username
     )
     .map((issue) => ({
       name: issue.user?.login || "Unknown",
@@ -197,32 +195,113 @@ export const fetchUserIssues = async (username, token) => {
   };
 };
 
-export const IssueClassify = async (specialIssues) => {
+export const IssueClassify = async (specialissues) => {
   try {
-    if (!specialIssues || specialIssues.length === 0) {
+    if (!specialissues || specialissues.length === 0) {
       console.warn("No special issues to analyze.");
       return;
     }
 
-    const res = await axios.post(
-      "https://dev-proof-backend.vercel.app/api/classify/v1",
-      {
-        issues: specialIssues,
-      }
-    );
+    const res = await axios.post("http://localhost:5000/api/classify/v1", {
+      issues: specialissues,
+    });
 
     if (res?.data) {
-      console.log("Server Response:", res.data);
+      return res.data;
     } else {
       console.warn("No response data from classification API.");
     }
-
-    console.log("Special Issues:", specialIssues);
   } catch (error) {
     console.error(
       "Error classifying issues:",
       error.response?.data || error.message
     );
+  }
+};
+
+const getUserRepositories = async (userScreenName, token) => {
+  try {
+    const response = await fetch(
+      `https://api.github.com/users/${userScreenName}/repos`,
+      {
+        headers: {
+          Authorization: `token ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Error fetching user repositories: ${response.statusText}`
+      );
+    }
+
+    const repoData = await response.json();
+    return repoData;
+  } catch (error) {
+    console.error("Error in getUserRepositories:", error);
+  }
+};
+
+export const getTotalForksForAllRepositories = async (userScreenName, token) => {
+  try {
+    const repos = await getUserRepositories(userScreenName, token);
+
+    if (!repos || repos.length === 0) {
+      console.log("No repositories found.");
+      return;
+    }
+
+    let totalForks = 0;
+
+    for (const repo of repos) {
+      totalForks += repo.forks_count;
+    }
+
+    return totalForks;
+  } catch (error) {
+    console.error("Error in getTotalForksForAllRepositories:", error);
+  }
+};
+
+export const getLastUpdatedForAllRepositories = async (
+  userScreenName,
+  token
+) => {
+  try {
+    const repos = await getUserRepositories(userScreenName, token);
+
+    if (!repos || repos.length === 0) {
+      console.log("No repositories found.");
+      return;
+    }
+
+    let latestUpdatedDate = null;
+
+    for (const repo of repos) {
+      const repoLastUpdated = repo.updated_at;
+
+      if (repoLastUpdated) {
+        if (
+          !latestUpdatedDate ||
+          new Date(repoLastUpdated) > new Date(latestUpdatedDate)
+        ) {
+          latestUpdatedDate = repoLastUpdated;
+        }
+      }
+    }
+
+    if (latestUpdatedDate) {
+      console.log(
+        `The most recent "Last Updated" date across all repositories: ${latestUpdatedDate}`
+      );
+      return latestUpdatedDate;
+    } else {
+      console.log("No repositories have an 'updated_at' field.");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error in getLastUpdatedForAllRepositories:", error);
   }
 };
 
@@ -325,12 +404,6 @@ export const fetchAllReviews = async (username, token) => {
   }
 };
 
-export const fetchRepoLanguages = async (owner, repo, token) => {
-  const api = createApi(token);
-  const response = await api.get(`/repos/${owner}/${repo}/languages`);
-  return response.data;
-};
-
 export const fetchRepoStats = async (owner, repo, token) => {
   const api = createApi(token);
   const response = await api.get(`/repos/${owner}/${repo}`);
@@ -390,7 +463,7 @@ export const fetchUserOrgs = async (username, token) => {
 
 export const fetchRepoWatchers = async (owner, repo, token) => {
   const api = createApi(token);
-  const response = await api.get(`/repos/${owner}/${repo}/subscribers`);
+  const response = await api.get(`/repos/${owner}/${repo}`);
   return response.data;
 };
 
