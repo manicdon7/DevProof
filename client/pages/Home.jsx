@@ -65,8 +65,8 @@ export default function HomePage() {
           <WhyChooseSection />
           <LeaderboardSection />
           <JoinSection />
-          <FeaturedSection />
-          <NewsletterSection />
+          {/* <FeaturedSection />
+          <NewsletterSection /> */}
 
         </div>
       </ClickSpark>
