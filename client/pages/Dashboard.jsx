@@ -13,6 +13,7 @@ import {
   fetchUserPRs,
   fetchUserRepos,
   getCommitStats,
+  IssueClassify,
 } from "../src/Api/Github";
 import { useUserContext } from "../context";
 import githubService from "../src/services/githubServices";
@@ -52,6 +53,7 @@ export default function DashBoard() {
     total: 0,
     openissue: 0,
     closed: 0,
+    specialIssues: {},
   });
   const [repos, setRepos] = useState({
     Total: 0,
@@ -177,14 +179,19 @@ export default function DashBoard() {
             user.reloadUserInfo.screenName,
             token
           );
-          if (res) {
+
+          if (res?.specialIssues?.length > 0) {
             setIssue(res);
+            IssueClassify(res.specialIssues);
+          } else {
+            console.warn("No special issues found.");
           }
         } catch (error) {
-          console.error("Error fetching PRs:", error);
+          console.error("Error fetching issues:", error);
         }
       }
     };
+
     issues();
 
     const ai = async () => {
@@ -258,7 +265,6 @@ export default function DashBoard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white overflow-hidden relative">
-      {/* Background Effects */}
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-mosaic.png')] opacity-15 animate-subtlePulse"></div>
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
         <div className="w-80 h-80 bg-orange-500/20 rounded-full blur-3xl absolute top-20 left-20 animate-glow"></div>

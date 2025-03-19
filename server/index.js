@@ -7,14 +7,15 @@ const {
   topContributorEmailTemplate,
   onboardingEmailTemplate,
 } = require("./utils/Templates");
+const analyzeGithubIssues = require("./utils/classify");
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 const allowedOrigins = [
-  'https://dev-proof.vercel.app',
-  'http://localhost:3000'
+  "https://dev-proof.vercel.app",
+  "http://localhost:3000",
 ];
 
 const corsOptions = {
@@ -24,11 +25,11 @@ const corsOptions = {
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error("Not allowed by CORS"));
     }
   },
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
 app.use(cors(corsOptions));
@@ -39,7 +40,8 @@ app.get("/", (req, res) => {
     status: "Server is running smoothly 🚀",
     uptime: process.uptime(),
     timestamp: new Date().toLocaleString(),
-    message: "Welcome to the DevProof API — Rewarding Open Source Excellence on Core Blockchain! 🎉",
+    message:
+      "Welcome to the DevProof API — Rewarding Open Source Excellence on Core Blockchain! 🎉",
   };
   res.status(200).json(serverStatus);
 });
@@ -49,15 +51,23 @@ app.post("/api/send-registration-email", async (req, res) => {
   try {
     const { email, name } = req.body;
     if (!email || !name) {
-      return res.status(400).json({ success: false, message: "Email and name are required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email and name are required" });
     }
     const subject = "Welcome to DevProof!";
     const htmlContent = registrationEmailTemplate(name);
     await sendEmail(email, subject, htmlContent);
-    return res.status(200).json({ success: true, message: "Registration email sent successfully" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Registration email sent successfully" });
   } catch (error) {
     console.error("Error sending registration email:", error);
-    return res.status(500).json({ success: false, message: "Failed to send registration email", error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send registration email",
+      error: error.message,
+    });
   }
 });
 
@@ -66,15 +76,24 @@ app.post("/api/send-top-contributor-email", async (req, res) => {
   try {
     const { email, name } = req.body;
     if (!email || !name) {
-      return res.status(400).json({ success: false, message: "Email and name are required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email and name are required" });
     }
     const subject = "Congrats! You're a Top 5 Contributor This Week!";
     const htmlContent = topContributorEmailTemplate(name);
     await sendEmail(email, subject, htmlContent);
-    return res.status(200).json({ success: true, message: "Top contributor email sent successfully" });
+    return res.status(200).json({
+      success: true,
+      message: "Top contributor email sent successfully",
+    });
   } catch (error) {
     console.error("Error sending top contributor email:", error);
-    return res.status(500).json({ success: false, message: "Failed to send top contributor email", error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send top contributor email",
+      error: error.message,
+    });
   }
 });
 
@@ -83,15 +102,47 @@ app.post("/api/send-onboarding-email", async (req, res) => {
   try {
     const { email, name, githubUsername } = req.body;
     if (!email || !name || !githubUsername) {
-      return res.status(400).json({ success: false, message: "Email, name, and GitHub username are required" });
+      return res.status(400).json({
+        success: false,
+        message: "Email, name, and GitHub username are required",
+      });
     }
     const subject = "Welcome Onboard to DevProof!";
     const htmlContent = onboardingEmailTemplate(name, githubUsername);
     await sendEmail(email, subject, htmlContent);
-    return res.status(200).json({ success: true, message: "Onboarding email sent successfully" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Onboarding email sent successfully" });
   } catch (error) {
     console.error("Error sending onboarding email:", error);
-    return res.status(500).json({ success: false, message: "Failed to send onboarding email", error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send onboarding email",
+      error: error.message,
+    });
+  }
+});
+
+app.post("/api/classify/v1", async (req, res) => {
+  try {
+    const { issues } = req.body;
+
+    if (!issues || !Array.isArray(issues) || issues.length === 0) {
+      return res.status(400).json({ error: "Invalid or empty issues array." });
+    }
+
+    const priority = await analyzeGithubIssues(issues);
+
+    if (!priority) {
+      return res.status(500).json({ error: "Failed to classify issues." });
+    }
+
+    return res.status(200).json({ priority });
+  } catch (error) {
+    console.error("Error in classify route:", error);
+    return res
+      .status(500)
+      .json({ error: "Internal server error.", details: error.message });
   }
 });
 

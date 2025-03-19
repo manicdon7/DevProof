@@ -130,9 +130,11 @@ export const fetchUserPRs = async (username, token) => {
 
     prItems = [...prItems, ...response.data.items];
 
-    const mergedItems = response.data.items.filter(
-      (pr) => pr.pull_request.merged_at !== null
-    );
+    const mergedItems = response.data.items.filter((pr) => {
+      if (!pr.pull_request.merged_at) return false;
+      const repoOwner = pr.repository_url.split("/").slice(-2, -1)[0];
+      return pr.user.login !== repoOwner;
+    });
 
     mergedPrItems = [...mergedPrItems, ...mergedItems];
 
@@ -144,7 +146,6 @@ export const fetchUserPRs = async (username, token) => {
     mergedPrCount: mergedPrItems.length,
   };
 };
-
 export const fetchUserIssues = async (username, token) => {
   const api = createApi(token);
   let issueItems = [];
@@ -155,7 +156,7 @@ export const fetchUserIssues = async (username, token) => {
       `/search/issues?q=author:${username}+type:issue&page=${page}&per_page=100`
     );
 
-    if (response.data.items.length === 0) {
+    if (!response.data || response.data.items.length === 0) {
       break;
     }
 
@@ -166,15 +167,58 @@ export const fetchUserIssues = async (username, token) => {
   const openedIssues = issueItems.filter(
     (issue) => issue.state === "open"
   ).length;
+
   const closedIssues = issueItems.filter(
-    (issue) => issue.state === "closed"
+    (issue) => issue.state === "closed" && issue.labels.length === 0
   ).length;
+
+  const specialIssuesClosed = issueItems
+    .filter((issue) => issue.state === "closed" && issue.labels.length > 0)
+    .map((issue) => ({
+      name: issue.user?.login || "Unknown",
+      title: issue.title,
+      labels: issue.labels.map((label) => ({
+        name: label.name,
+        description: label.description || "No description",
+        color: label.color || "default",
+      })),
+    }));
 
   return {
     total: issueItems.length,
     openissue: openedIssues,
     closed: closedIssues,
+    specialIssues: specialIssuesClosed,
   };
+};
+
+export const IssueClassify = async (specialIssues) => {
+  try {
+    if (!specialIssues || specialIssues.length === 0) {
+      console.warn("No special issues to analyze.");
+      return;
+    }
+
+    const res = await axios.post(
+      "https://dev-proof-backend.vercel.app/api/classify/v1",
+      {
+        issues: specialIssues,
+      }
+    );
+
+    if (res?.data) {
+      console.log("Server Response:", res.data);
+    } else {
+      console.warn("No response data from classification API.");
+    }
+
+    console.log("Special Issues:", specialIssues);
+  } catch (error) {
+    console.error(
+      "Error classifying issues:",
+      error.response?.data || error.message
+    );
+  }
 };
 
 export const fetchRepoContents = async (username, repo, token) => {
