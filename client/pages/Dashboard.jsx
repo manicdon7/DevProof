@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import GithubProvider from "../components/GithubProvider";
 import {
   calculateStats,
+  fetchAllReviews,
   fetchRepoContents,
   fetchStarredRepos,
   fetchUserData,
@@ -18,6 +19,7 @@ import githubService from "../src/services/githubServices";
 
 export default function DashBoard() {
   const { address } = useAccount();
+  const [TotalScore, setTotalscore] = useState(null);
   const auth = getAuth();
   const [user, setUser] = useState(null);
   const [commitStats, setCommitStats] = useState(null);
@@ -29,6 +31,23 @@ export default function DashBoard() {
     mergedPrCount: 0,
     totalPrCount: 0,
   });
+
+  useEffect(() => {
+    function sum() {
+      const score =
+        profitYield * 5 +
+        userData.followers * 2 +
+        commitStats?.totalCommits * 10 +
+        repos.star * 5 +
+        pr.mergedPrCount * 20 +
+        Issue.closed * 5 +
+        review * 7;
+
+      setTotalscore(score);
+    }
+    sum();
+  });
+  const [review, setReview] = useState(null);
   const [Issue, setIssue] = useState({
     total: 0,
     openissue: 0,
@@ -219,6 +238,22 @@ export default function DashBoard() {
     };
 
     ai();
+
+    const getReviews = async () => {
+      try {
+        if (user?.reloadUserInfo?.screenName) {
+          const res = await fetchAllReviews(
+            user.reloadUserInfo.screenName,
+            token
+          );
+          setReview(res.length);
+        }
+      } catch (error) {
+        console.error("Error in getReviews:", error);
+      }
+    };
+
+    getReviews();
   }, [user]);
 
   return (
@@ -253,8 +288,10 @@ export default function DashBoard() {
               </h2>
               <div className="mt-2 flex gap-4 justify-center sm:justify-start">
                 <p className="text-gray-600">
-                  Points:{" "}
-                  <span className="font-semibold text-green-600">5,678</span>
+                  Points:
+                  <span className="font-semibold text-green-600">
+                    {TotalScore}
+                  </span>
                 </p>
                 <p className="text-gray-600">
                   Rank:{" "}
@@ -392,7 +429,6 @@ export default function DashBoard() {
             </div>
           </div>
 
-          {/* Detailed Activity */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
             <div className="bg-white p-6 rounded-xl shadow-sm">
               <h3 className="text-sm text-gray-600 mb-4">Code Stats</h3>
@@ -501,20 +537,23 @@ export default function DashBoard() {
                 <span className="text-gray-500">
                   Issues Closed ({Issue.closed})
                 </span>
-                <span className="font-semibold text-green-600">{ Issue.closed * 5 }</span>
+                <span className="font-semibold text-green-600">
+                  {Issue.closed * 5}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Code Reviews (23 × 10)</span>
-                <span className="font-semibold text-green-600">230</span>
+                <span className="text-gray-500">Code Reviews ({review})</span>
+                <span className="font-semibold text-green-600">
+                  {review * 7}
+                </span>
               </div>
               <div className="flex justify-between font-bold text-gray-800">
                 <span>Total Points</span>
-                <span className="text-green-600">5,893</span>
+                <span className="text-green-600">{TotalScore}</span>
               </div>
             </div>
           </div>
 
-          {/* GitHub Insights */}
           <div className="bg-white p-6 rounded-xl shadow-sm mt-10">
             <h3 className="text-sm text-gray-600 mb-4">GitHub Insights</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">

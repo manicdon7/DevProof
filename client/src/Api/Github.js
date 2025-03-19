@@ -183,6 +183,99 @@ export const fetchRepoContents = async (username, repo, token) => {
   return response.data;
 };
 
+const fetchuserRepos = async (username, token) => {
+  try {
+    const api = createApi(token);
+    let repos = [];
+    let page = 1;
+
+    while (true) {
+      const response = await api.get(
+        `/users/${username}/repos?page=${page}&per_page=100`
+      );
+      if (response.data.length === 0) break;
+      repos.push(...response.data.map((repo) => repo.name));
+      page++;
+    }
+
+    return repos;
+  } catch (error) {
+    console.error("Error fetching user repositories:", error);
+    return [];
+  }
+};
+
+const fetchRepoPullRequests = async (owner, repo, token) => {
+  try {
+    const api = createApi(token);
+    let pullRequests = [];
+    let page = 1;
+
+    while (true) {
+      const response = await api.get(
+        `/repos/${owner}/${repo}/pulls?state=all&page=${page}&per_page=100`
+      );
+      if (response.data.length === 0) break;
+      pullRequests.push(...response.data.map((pr) => pr.number));
+      page++;
+    }
+
+    return pullRequests;
+  } catch (error) {
+    console.error(`Error fetching PRs for repo ${repo}:`, error);
+    return [];
+  }
+};
+
+const fetchPullRequestReviews = async (owner, repo, prNumber, token) => {
+  try {
+    const api = createApi(token);
+    const response = await api.get(
+      `/repos/${owner}/${repo}/pulls/${prNumber}/reviews`
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      `Error fetching reviews for PR #${prNumber} in repo ${repo}:`,
+      error
+    );
+    return [];
+  }
+};
+
+export const fetchAllReviews = async (username, token) => {
+  try {
+    const repos = await fetchuserRepos(username, token);
+
+    const prPromises = repos.map((repo) =>
+      fetchRepoPullRequests(username, repo, token).then((prs) =>
+        prs.map((pr) => ({ repo, pr }))
+      )
+    );
+
+    const prResults = await Promise.all(prPromises);
+    const allPRs = prResults.flat();
+
+    const reviewPromises = allPRs.map(({ repo, pr }) =>
+      fetchPullRequestReviews(username, repo, pr, token).then((reviews) => {
+        const reviewBodies = reviews
+          .map((review) => review.body)
+          .filter((body) => body && body.trim() !== "");
+
+        return reviewBodies.length > 0
+          ? { repo, prNumber: pr, reviews: reviewBodies }
+          : null;
+      })
+    );
+
+    const reviews = await Promise.all(reviewPromises);
+    return reviews.filter((review) => review !== null);
+  } catch (error) {
+    console.error("Error fetching all reviews:", error);
+    return [];
+  }
+};
+
 export const fetchRepoLanguages = async (owner, repo, token) => {
   const api = createApi(token);
   const response = await api.get(`/repos/${owner}/${repo}/languages`);
