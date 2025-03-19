@@ -11,6 +11,8 @@ const analyzeGithubIssues = require("./utils/classify");
 const { getChatResponse } = require("./utils/coreMateUtils");
 const bodyParser = require('body-parser');
 const path = require('path');
+const insertLeaderboardData = require("./utils/board");
+const ConnectConfig = require("./lib/Connect.config");
 
 dotenv.config();
 
@@ -191,6 +193,60 @@ app.use((err, req, res, next) => {
     message: 'Internal Server Error',
     error: process.env.NODE_ENV === 'production' ? {} : err
   });
+})
+
+app.post("/api/leaderboard", async (req, res) => {
+  const { wallet, username, score } = req.body;
+
+  if (!wallet || !username) {
+    return res.status(400).json({ error: "Wallet and username are required." });
+  }
+
+  try {
+    const result = await insertLeaderboardData(wallet, username, score);
+    return res.status(201).json({ success: true, result });
+  } catch (err) {
+    return res.status(500).json({
+      error: "Error inserting leaderboard data",
+      details: err.message,
+    });
+  }
+});
+
+app.post("/api/leaderboard/score", async (req, res) => {
+  const { wallet, username, score } = req.body;
+  const db = await ConnectConfig();
+  const collection = db.leaderboard;
+
+  if (!wallet || !username || score === undefined) {
+    return res.status(400).json({
+      message: "Wallet, username, and score are required.",
+    });
+  }
+
+  try {
+    const updatedUser = await collection.updateOne(
+      { $or: [{ wallet }, { username }] },
+      { $set: { score } },
+      { new: true }
+    );
+
+    if (updatedUser.matchedCount === 0) {
+      return res.status(404).json({
+        message: "User not found.",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Score updated successfully",
+      updatedUser,
+    });
+  } catch (error) {
+    console.error("Error updating score:", error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
 });
 
 app.listen(port, () => {

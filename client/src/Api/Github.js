@@ -202,7 +202,7 @@ export const IssueClassify = async (specialissues) => {
       return;
     }
 
-    const res = await axios.post("http://localhost:5000/api/classify/v1", {
+    const res = await axios.post("https://dev-proof-backend/api/classify/v1", {
       issues: specialissues,
     });
 
@@ -243,7 +243,10 @@ const getUserRepositories = async (userScreenName, token) => {
   }
 };
 
-export const getTotalForksForAllRepositories = async (userScreenName, token) => {
+export const getTotalForksForAllRepositories = async (
+  userScreenName,
+  token
+) => {
   try {
     const repos = await getUserRepositories(userScreenName, token);
 
