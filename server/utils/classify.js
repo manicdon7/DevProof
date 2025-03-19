@@ -1,5 +1,16 @@
-const fetch = require("node-fetch");
+/**
+ * Analyzes GitHub issues using CoreMate AI with axios
+ * @module analyzeGithubIssues
+ */
 
+const axios = require('axios');
+
+/**
+ * Analyzes GitHub issues and returns priority data
+ * @param {Array} specialIssues - Array of GitHub issues to analyze
+ * @returns {Promise<string|null>} - Priority string ("High", "Medium", "Low") or null on error
+ * @throws {Error} - If specialIssues is invalid or empty
+ */
 async function analyzeGithubIssues(specialIssues) {
   if (!Array.isArray(specialIssues) || specialIssues.length === 0) {
     throw new Error("Invalid or empty specialIssues array.");
@@ -21,17 +32,29 @@ async function analyzeGithubIssues(specialIssues) {
   `;
 
   try {
-    const url = process.env.URLL;
-    const response = await fetch(`${url}/${encodeURIComponent(prompt)}`);
+    const url = process.env.URLL; // Fallback to default if URLL not set
+    const response = await axios.get(`${url}/${encodeURIComponent(prompt)}`, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'CoreMate-Issue-Analyzer/1.0',
+      },
+      timeout: 10000, // 10-second timeout
+    });
 
-    const data = await response.text();
+    const data = response.data;
 
+    // Clean and parse the response
     const cleanData = data.replace(/```json|```/g, "").trim();
     const jsonData = JSON.parse(cleanData);
 
-    return jsonData.priority;
+    return jsonData.priority; // Returning only priority as per original code
   } catch (error) {
-    console.error("Error fetching or parsing JSON:", error);
+    console.error("Error fetching or parsing JSON:", error.message);
+    if (error.response) {
+      console.error('Response error:', error.response.status, error.response.data);
+    } else if (error.request) {
+      console.error('No response received');
+    }
     return null;
   }
 }

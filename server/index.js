@@ -8,6 +8,9 @@ const {
   onboardingEmailTemplate,
 } = require("./utils/Templates");
 const analyzeGithubIssues = require("./utils/classify");
+const { getChatResponse } = require("./utils/coreMateUtils");
+const bodyParser = require('body-parser');
+const path = require('path');
 
 dotenv.config();
 
@@ -144,6 +147,50 @@ app.post("/api/classify/v1", async (req, res) => {
       .status(500)
       .json({ error: "Internal server error.", details: error.message });
   }
+});
+
+app.post("/api/coremate", async (req, res) => {
+  try {
+    const { message } = req.body;
+
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Message is required and must be a string' 
+      });
+    }
+    
+    const response = await getChatResponse(message);
+    
+    return res.status(200).json({
+      success: true,
+      data: response
+    });
+  } catch (error) {
+    console.error("Error in CoreMate chat:", error);
+    return res
+      .status(500)
+      .json({ 
+        success: false, 
+        message: "Failed to process CoreMate request", 
+        error: error.message 
+      });
+  }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Server is running' });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    success: false,
+    message: 'Internal Server Error',
+    error: process.env.NODE_ENV === 'production' ? {} : err
+  });
 });
 
 app.listen(port, () => {
