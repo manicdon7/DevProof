@@ -4,7 +4,7 @@ const cors = require("cors");
 const sendEmail = require("./utils/SendEmail");
 const {
   registrationEmailTemplate,
-  eventCreationEmailTemplate,
+  topContributorEmailTemplate,
   onboardingEmailTemplate,
 } = require("./utils/Templates");
 
