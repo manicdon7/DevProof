@@ -62,10 +62,10 @@ export function Navbar() {
             Dashboard
           </a>
           <a
-            href="#"
+            href="/staketoken"
             className="text-white hover:text-[#ff9211] transition-colors duration-300 font-lexend font-medium tracking-wide"
           >
-            Services
+            Stake
           </a>
           <a
             href="#"
@@ -146,10 +146,10 @@ export function Navbar() {
           Dashboard
         </a>
         <a
-          href="#"
+          href="/staketoken"
           className="text-white hover:text-[#ff9211] transition-colors duration-300 font-lexend font-medium w-full text-center py-2 hover:bg-[#1a1a1a] rounded-md"
         >
-          Services
+          Stake
         </a>
         <a
           href="#"
