@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { HeroSection } from "../components/HeroSection";
+import { EmpowerSection } from "../components/EmpowerSection";
+import { HowItWorksSection } from "../components/HowItWorksSection";
+import { WhyChooseSection } from "../components/WhyChooseSection";
+import { LeaderboardSection } from "../components/LeaderBoardSection";
+import { JoinSection } from "../components/JoinSection";
+import { FeaturedSection } from "../components/FeaturedSection";
+import { NewsletterSection } from "../components/NewsLetterSection";
+import ClickSpark from "../components/ClickSpark";
 
 export default function HomePage() {
   const { address, isConnected } = useAccount();
@@ -31,7 +39,7 @@ export default function HomePage() {
             githubUid: githubUser.uid, // Store GitHub UID for reference
           });
           Cookies.set("address", data);
-          navigate("/dashboard");
+          navigate("/staketoken");
         }
       } catch (error) {
         console.error("Error in AuthRedirect:", error);
@@ -43,9 +51,25 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#0f0f0f] text-white">
-      <div className="bg-[#1a1a1a] w-full">
-        <HeroSection/>
-      </div>
+      <ClickSpark
+        sparkColor='#ff9211'
+        sparkSize={10}
+        sparkRadius={15}
+        sparkCount={8}
+        duration={400}
+      >
+        <div className="bg-[#1a1a1a] w-full">
+          <HeroSection />
+          <EmpowerSection />
+          <HowItWorksSection />
+          <WhyChooseSection />
+          <LeaderboardSection />
+          <JoinSection />
+          <FeaturedSection />
+          <NewsletterSection />
+
+        </div>
+      </ClickSpark>
     </div>
   );
 }
