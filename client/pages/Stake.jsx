@@ -211,20 +211,9 @@ const Stake = () => {
 
       console.log("Attempting to claim rewards using staking contract:", stakingContract.target);
       
-      // CRITICAL FIX: Manually encode the function call
-      // Get the function from the contract interface
-      const claimRewardFunction = stakingContract.interface.getFunction("claimReward");
-      console.log("Function signature:", claimRewardFunction.selector);
-      
-      // Encode the function call - this creates the proper transaction data
-      const data = stakingContract.interface.encodeFunctionData(claimRewardFunction);
-      console.log("Encoded function call data:", data);
-      
-      // Send the transaction with the encoded data
-      const tx = await signer.sendTransaction({
-        to: stakingContract.target,
-        data: data,
-        gasLimit: 1000000,
+      // Try to call the contract method directly with gas parameters
+      const tx = await stakingContract.claimReward({
+        gasLimit: 1000000, // Increase gas limit
       });
       
       console.log("Transaction sent:", tx.hash);
