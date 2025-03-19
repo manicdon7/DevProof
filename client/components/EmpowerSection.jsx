@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import SpotlightCard from "./SpotlightCard";
+import SpotlightCard from "../components/SpotLightCard";
 
 // Utility to combine class names
 function cn(...classes) {
