@@ -15,52 +15,173 @@ const createApi = (token) => {
 export const fetchUserData = async (username, token) => {
   const api = createApi(token);
   const response = await api.get(`/users/${username}`);
-  return response.data; 
+  return response.data;
 };
 
-export const fetchUserRepos = async (username, token) => {
+export const fetchUserRepos = async (username, token, page = 1) => {
   const api = createApi(token);
-  const response = await api.get(`/users/${username}/repos`);
-  return response.data; 
-};
+  const response = await api.get(
+    `/users/${username}/repos?visibility=all&page=${page}&per_page=100`
+  );
 
+  const totalStars = response.data.reduce(
+    (total, repo) => total + repo.stargazers_count,
+    0
+  );
 
-export const fetchUserEvents = async (username, token) => {
-  const api = createApi(token);
-  const response = await api.get(`/users/${username}/events`);
-  return response.data; 
+  const response2 = response.data.filter((repo) => repo.fork);
+  return {
+    Total: response.data,
+    reposlen: response.data,
+    Fork: response2.length,
+    star: totalStars,
+  };
 };
 
 export const fetchRepoCommits = async (owner, repo, token) => {
   const api = createApi(token);
   const response = await api.get(`/repos/${owner}/${repo}/commits`);
-  return response.data; 
+  return response.data;
+};
+
+export const fetchUserEvents = async (username, token) => {
+  const api = createApi(token);
+  const response = await api.get(`/users/${username}/events`);
+  return response.data;
+};
+
+export const getCommitStats = (events) => {
+  const commits = [];
+
+  events.forEach((event) => {
+    if (event.type === "PushEvent") {
+      const commitCount = event.payload.commits.length;
+
+      commits.push({
+        date: new Date(event.created_at),
+        commitCount,
+      });
+    }
+  });
+
+  return commits;
+};
+
+export const calculateStats = (commits, username) => {
+  const currentYear = new Date().getFullYear();
+  let totalCommits = 0;
+  let commitsThisYear = 0;
+  let largestCommit = 0;
+  let externalCommits = 0;
+  let totalDays = new Set();
+
+  commits.forEach((commit) => {
+    const isExternal = commit.repo && !commit.repo.owner.login === username;
+
+    totalCommits += commit.commitCount;
+    totalDays.add(commit.date.toDateString());
+
+    if (commit.date.getFullYear() === currentYear) {
+      commitsThisYear += commit.commitCount;
+    }
+
+    if (commit.commitCount > largestCommit) {
+      largestCommit = commit.commitCount;
+    }
+
+    if (isExternal) {
+      externalCommits += commit.commitCount;
+    }
+  });
+
+  const avgPerDay = totalCommits / totalDays.size;
+
+  return {
+    totalCommits: totalCommits,
+    commitsThisYear: commitsThisYear,
+    avgPerDay: avgPerDay,
+    largestCommit: largestCommit,
+    externalCommits: externalCommits,
+  };
 };
 
 export const fetchStarredRepos = async (username, token) => {
   const api = createApi(token);
   const response = await api.get(`/users/${username}/starred`);
-  return response.data; 
+  const givenStarsCount = response.data.length;
+
+  return givenStarsCount;
 };
 
 export const fetchUserPRs = async (username, token) => {
   const api = createApi(token);
-  const response = await api.get(`/search/issues?q=author:${username}+type:pr`);
-  return response.data.items; 
+  let prItems = [];
+  let mergedPrItems = [];
+  let page = 1;
+
+  while (true) {
+    const response = await api.get(
+      `/search/issues?q=author:${username}+type:pr&page=${page}&per_page=100`
+    );
+
+    if (response.data.items.length === 0) {
+      break;
+    }
+
+    prItems = [...prItems, ...response.data.items];
+
+    const mergedItems = response.data.items.filter(
+      (pr) => pr.pull_request.merged_at !== null
+    );
+
+    mergedPrItems = [...mergedPrItems, ...mergedItems];
+
+    page += 1;
+  }
+
+  return {
+    totalPrCount: prItems.length,
+    mergedPrCount: mergedPrItems.length,
+  };
 };
 
 export const fetchUserIssues = async (username, token) => {
   const api = createApi(token);
-  const response = await api.get(
-    `/search/issues?q=author:${username}+type:issue`
-  );
-  return response.data.items; 
+  let issueItems = [];
+  let page = 1;
+
+  while (true) {
+    const response = await api.get(
+      `/search/issues?q=author:${username}+type:issue&page=${page}&per_page=100`
+    );
+
+    if (response.data.items.length === 0) {
+      break;
+    }
+
+    issueItems = [...issueItems, ...response.data.items];
+    page += 1;
+  }
+
+  const openedIssues = issueItems.filter(
+    (issue) => issue.state === "open"
+  ).length;
+  const closedIssues = issueItems.filter(
+    (issue) => issue.state === "closed"
+  ).length;
+
+  return {
+    total: issueItems.length,
+    openissue: openedIssues,
+    closed: closedIssues,
+  };
 };
 
-export const fetchRepoContents = async (owner, repo, token) => {
+export const fetchRepoContents = async (username, repo, token) => {
   const api = createApi(token);
-  const response = await api.get(`/repos/${owner}/${repo}/contents`);
-  return response.data; 
+  const response = await api.get(`/repos/${username}/${repo}/contents`);
+  const data = await response.json();
+  return data;
 };
 
 export const fetchRepoLanguages = async (owner, repo, token) => {
@@ -72,16 +193,16 @@ export const fetchRepoLanguages = async (owner, repo, token) => {
 export const fetchRepoStats = async (owner, repo, token) => {
   const api = createApi(token);
   const response = await api.get(`/repos/${owner}/${repo}`);
-  return response.data; 
+  return response.data;
 };
 
 export const fetchDiscussions = async (owner, repo, token) => {
   const api = createApi(token);
   try {
-    const response = await api.get(`/repos/${owner}/${repo}/discussions`); 
+    const response = await api.get(`/repos/${owner}/${repo}/discussions`);
     return response.data;
   } catch (error) {
-    return []; 
+    return [];
   }
 };
 

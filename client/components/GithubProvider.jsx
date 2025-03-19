@@ -3,15 +3,25 @@ import { auth, signInWithPopup, provider } from "../firebase.config";
 
 export default function GithubProvider() {
   const { setUsers } = useUserContext();
+
   const Provider = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      setUsers(user);
+      console.log(result);
+      if (result && result.user) {
+        sessionStorage.setItem(
+          "oauthAccessToken",
+          result._tokenResponse.oauthAccessToken
+        );
+        setUsers(result?.user);
+      } else {
+        console.error("Result or user is null");
+      }
     } catch (error) {
-      throw new Error(error);
+      console.error("Error signing in with GitHub:", error);
     }
   };
+
   return (
     <div>
       <div

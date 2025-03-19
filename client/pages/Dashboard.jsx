@@ -2,13 +2,44 @@ import { useAccount } from "wagmi";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
 import GithubProvider from "../components/GithubProvider";
-import { HeroSection } from "../components/HeroSection";
+import {
+  calculateStats,
+  fetchRepoContents,
+  fetchStarredRepos,
+  fetchUserData,
+  fetchUserEvents,
+  fetchUserIssues,
+  fetchUserPRs,
+  fetchUserRepos,
+  getCommitStats,
+} from "../src/Api/Github";
+import { useUserContext } from "../context";
+import githubService from "../src/services/githubServices";
 
 export default function DashBoard() {
   const { address } = useAccount();
   const auth = getAuth();
   const [user, setUser] = useState(null);
+  const [commitStats, setCommitStats] = useState(null);
+  const [star, setStar] = useState(null);
+  const { Token } = useUserContext();
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [pr, setPr] = useState({
+    mergedPrCount: 0,
+    totalPrCount: 0,
+  });
+  const [Issue, setIssue] = useState({
+    total: 0,
+    openissue: 0,
+    closed: 0,
+  });
+  const [repos, setRepos] = useState({
+    Total: 0,
+    repos: 0,
+    Fork: 0,
+    star: 0,
+  });
+  const [userData, setUserData] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -29,11 +60,134 @@ export default function DashBoard() {
     };
   }, [auth]);
 
+  useEffect(() => {
+    if (user) {
+      const fetchRepo = async () => {
+        try {
+          const Key = sessionStorage.getItem("oauthAccessToken");
+          const repo = await fetchUserRepos(
+            user.reloadUserInfo.screenName,
+            Key
+          );
+          const data = {
+            Total: repo.Total,
+            repos: repo.reposlen,
+            Fork: repo.Fork,
+            star: repo.star,
+          };
+
+          setRepos(data);
+        } catch (error) {
+          console.error("Error fetching repos:", error);
+        }
+      };
+      fetchRepo();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    let token = null;
+    const fetchData = async () => {
+      try {
+        token = sessionStorage.getItem("oauthAccessToken");
+        const data = await fetchUserData(user.reloadUserInfo.screenName, token);
+        setUserData(data);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+    fetchData();
+
+    console.log(token);
+    const fetchCommitStats = async () => {
+      try {
+        const events = await fetchUserEvents(
+          user.reloadUserInfo.screenName,
+          token
+        );
+        const commits = getCommitStats(events);
+        const stats = calculateStats(commits, user.reloadUserInfo.screenName);
+
+        setCommitStats(stats);
+      } catch (error) {
+        console.error("Error fetching user events:", error);
+        setCommitStats({
+          totalCommits: 0,
+          commitsThisYear: 0,
+          avgPerDay: 0,
+          largestCommit: 0,
+          externalCommits: 0,
+        });
+      }
+    };
+
+    fetchCommitStats();
+
+    const fetchstarredRepos = async () => {
+      const stared = await fetchStarredRepos(
+        user?.reloadUserInfo?.screenName,
+        token
+      );
+
+      if (stared) {
+        setStar(stared);
+      }
+    };
+
+    fetchstarredRepos();
+
+    const fetchPr = async () => {
+      if (user?.reloadUserInfo?.screenName) {
+        try {
+          const res = await fetchUserPRs(user.reloadUserInfo.screenName, token);
+          if (res) {
+            setPr(res);
+          }
+        } catch (error) {
+          console.error("Error fetching PRs:", error);
+        }
+      }
+    };
+
+    fetchPr();
+
+    const issues = async () => {
+      if (user?.reloadUserInfo?.screenName) {
+        try {
+          const res = await fetchUserIssues(
+            user.reloadUserInfo.screenName,
+            token
+          );
+          if (res) {
+            setIssue(res);
+          }
+        } catch (error) {
+          console.error("Error fetching PRs:", error);
+        }
+      }
+    };
+    issues();
+
+    const ai = async () => {
+      if (user?.reloadUserInfo?.screenName) {
+        try {
+          const service = githubService();
+          const res = await service.repo(user.reloadUserInfo.screenName, token);
+
+          // await fetchRepoContents(user.reloadUserInfo.screenName, res, token);
+        } catch (error) {
+          console.error("Error fetching repos:", error);
+        }
+      }
+    };
+
+    ai();
+  }, [user]);
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
+    <div className="flex flex-col items-center justify-center min-h-screen">
       <div className="w-full max-w-6xl mx-auto p-6">
         <div className="bg-gradient-to-br from-blue-50 via-white to-gray-50 rounded-2xl shadow-xl p-8">
-          {/* Profile Header with Tier */}
           <div className="flex flex-col sm:flex-row items-center gap-6 mb-10 border-b border-gray-200 pb-6">
             <div className="relative">
               <div className="w-28 h-28 rounded-full bg-gray-200 flex items-center justify-center ring-4 ring-blue-200 overflow-hidden">
@@ -79,19 +233,29 @@ export default function DashBoard() {
             </div>
           </div>
 
-          {/* Core Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300">
               <h3 className="text-sm text-gray-600 flex items-center gap-1">
                 <span>📚 Repositories</span>
                 <span className="text-xs text-green-500">+5 pts/repo</span>
               </h3>
-              <p className="text-3xl font-bold text-gray-800 mt-1">42</p>
+              <p className="text-3xl font-bold text-gray-800 mt-1">
+                {repos.repos ? repos.repos.length : 0}
+              </p>
               <div className="text-xs text-gray-500 mt-2 space-y-1">
-                <p>Public: 35</p>
-                <p>Private: 7</p>
-                <p>Forks: 15</p>
-                <p>Total Stars: 320</p>
+                <p>
+                  Public:
+                  {repos.repos
+                    ? repos.repos.filter((repo) => !repo.fork).length
+                    : 0}
+                </p>
+                <p>
+                  Forks:
+                  {repos.repos
+                    ? repos.repos.filter((repo) => repo.fork).length
+                    : 0}
+                </p>
+                <p>Total Stars: {repos.star}</p>
               </div>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300">
@@ -99,12 +263,23 @@ export default function DashBoard() {
                 <span>👥 Social</span>
                 <span className="text-xs text-green-500">+10/+3 pts</span>
               </h3>
-              <p className="text-3xl font-bold text-gray-800 mt-1">128</p>
+              <p className="text-3xl font-bold text-gray-800 mt-1">
+                {userData ? userData.followers : "0"}
+              </p>
               <div className="text-xs text-gray-500 mt-2 space-y-1">
-                <p>Followers: 128</p>
-                <p>Following: 65</p>
-                <p>New: 12/mo</p>
-                <p>Gists: 12</p>
+                <p>Followers: {userData ? userData.followers : "0"}</p>
+                <p>Following: {userData ? userData.following : "0"}</p>
+                <p>
+                  New:
+                  {userData
+                    ? Math.floor(
+                        (Date.now() - new Date(userData.created_at)) /
+                          (1000 * 60 * 60 * 24 * 30)
+                      )
+                    : "0"}
+                  /mo
+                </p>
+                <p>Gists: {userData ? userData.public_gists : "0"}</p>
               </div>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300">
@@ -112,41 +287,60 @@ export default function DashBoard() {
                 <span>💾 Commits</span>
                 <span className="text-xs text-green-500">+2/+5 pts</span>
               </h3>
-              <p className="text-3xl font-bold text-gray-800 mt-1">1,234</p>
-              <div className="text-xs text-gray-500 mt-2 space-y-1">
-                <p>This Year: 892</p>
-                <p>Avg/Day: 2.4</p>
-                <p>Largest: 156</p>
-                <p>External: 45</p>
-              </div>
+              <p className="text-3xl font-bold text-gray-800 mt-1">
+                {commitStats?.totalCommits || 0}
+              </p>
+              {commitStats ? (
+                <div className="text-xs text-gray-500 mt-2 space-y-1">
+                  <p>Total Commits: {commitStats?.totalCommits}</p>
+                  <p>This Year: {commitStats?.commitsThisYear}</p>
+                  <p>Avg/Day: {commitStats?.avgPerDay.toFixed(2)}</p>
+                  <p>Largest: {commitStats?.largestCommit}</p>
+                  <p>External: {commitStats?.externalCommits}</p>
+                </div>
+              ) : (
+                <p>Loading...</p>
+              )}
             </div>
           </div>
 
-          {/* Contribution Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
             <div className="bg-white p-5 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300">
               <h3 className="text-sm text-gray-600 flex items-center gap-1">
                 <span>⭐ Stars</span>
                 <span className="text-xs text-green-500">+15 pts</span>
               </h3>
-              <p className="text-2xl font-semibold text-gray-800 mt-1">89</p>
-              <p className="text-xs text-gray-500 mt-1">Given: 45</p>
+              <p className="text-2xl font-semibold text-gray-800 mt-1">
+                {repos.star}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Given: {star}</p>
             </div>
             <div className="bg-white p-5 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300">
               <h3 className="text-sm text-gray-600 flex items-center gap-1">
                 <span>📝 PRs</span>
                 <span className="text-xs text-green-500">+20/+25 pts</span>
               </h3>
-              <p className="text-2xl font-semibold text-gray-800 mt-1">34</p>
-              <p className="text-xs text-gray-500 mt-1">Merged: 28</p>
+              <p className="text-2xl font-semibold text-gray-800 mt-1">
+                {pr.totalPrCount}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Merged: {pr.mergedPrCount}
+              </p>
             </div>
             <div className="bg-white p-5 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300">
               <h3 className="text-sm text-gray-600 flex items-center gap-1">
                 <span>🐛 Issues</span>
                 <span className="text-xs text-green-500">+10/+15 pts</span>
               </h3>
-              <p className="text-2xl font-semibold text-gray-800 mt-1">56</p>
-              <p className="text-xs text-gray-500 mt-1">Closed: 42</p>
+              <p className="text-2xl font-semibold text-gray-800 mt-1">
+                {Issue.total}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                opened: {Issue.openissue}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Closed: {Issue.closed}
+              </p>
             </div>
             <div className="bg-white p-5 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300">
               <h3 className="text-sm text-gray-600 flex items-center gap-1">
@@ -226,7 +420,9 @@ export default function DashBoard() {
             <h3 className="text-sm text-gray-600 mb-4">Points Breakdown</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Repositories (42 × 5)</span>
+                <span className="text-gray-500">
+                  Repositories ({repos.repos ? repos.repos.length : 0} X 5)
+                </span>
                 <span className="font-semibold text-green-600">210</span>
               </div>
               <div className="flex justify-between">
