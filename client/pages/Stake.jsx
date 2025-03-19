@@ -72,24 +72,17 @@ const Stake = () => {
         const total = await getTotalStaked(stakingContractRead, isConnected, provider);
         setTotalStaked(total);
 
-        // Fetch rewards balance properly
-        try {
-          // Use getRewardBalance function which handles fallbacks
-          const reward = await getRewardBalance(rewardContractRead, address, isConnected, provider);
-          setWeeklyRewards(reward);
-        } catch (err) {
-          console.warn("Rewards not available:", err);
-          setWeeklyRewards("0"); // Fallback
-        }
+        // Fetch rewards balance
+        const reward = await getRewardBalance(rewardContractRead, address, isConnected, provider);
+        setWeeklyRewards(reward);
 
-        // Fetch yield pool value (assuming a function exists)
+        // Fetch yield pool value (placeholder contract address)
         try {
-          // Placeholder: Replace with actual yield contract call if available
-          const yieldValue = await provider.getBalance("0xA87e632f680A458b9eFb319a2448bC45E6C52117"); // Yield contract address
+          const yieldValue = await provider.getBalance("0xA87e632f680A458b9eFb319a2448bC45E6C52117");
           setYieldPoolValue(ethers.formatEther(yieldValue));
         } catch (err) {
           console.warn("Yield pool value not available:", err);
-          setYieldPoolValue("0"); // Fallback
+          setYieldPoolValue("0");
         }
 
         // Penalty calculation
@@ -103,9 +96,9 @@ const Stake = () => {
             const daysLeft = Math.ceil((minStakePeriod - timeSinceStake) / 86400);
             setPenaltyInfo({
               penalty: ethers.formatEther(penalty),
-              penaltyRate: Number(penaltyRate) / 100, // Percentage
+              penaltyRate: Number(penaltyRate) / 100,
               daysLeft,
-              penaltyApplies: true // Adding this to fix the conditional check
+              penaltyApplies: true,
             });
           } else {
             setPenaltyInfo(null);
@@ -136,9 +129,8 @@ const Stake = () => {
 
     setLoading(true);
     try {
-      // Using underscore to ignore unused variable (fixing linter warning)
-      const _receipt = await stakeTokens(stakingContract, amount, isConnected, signer, provider, address);
-      toast.success(`Successfully staked ${amount} tCORE! Tx: ${_receipt.hash.slice(0, 6)}...`);
+      const receipt = await stakeTokens(stakingContract, amount, isConnected, signer, provider, address);
+      toast.success(`Successfully staked ${amount} tCORE! Tx: ${receipt.hash.slice(0, 6)}...`);
       await refreshData();
       setAmount("");
     } catch (error) {
@@ -170,9 +162,8 @@ const Stake = () => {
 
     setLoading(true);
     try {
-      // Using underscore to ignore unused variable (fixing linter warning)
-      const _receipt = await unstakeTokens(stakingContract, amount, isConnected, signer, provider);
-      toast.success(`Successfully unstaked ${amount} tCORE! Tx: ${_receipt.hash.slice(0, 6)}...`);
+      const receipt = await unstakeTokens(stakingContract, amount, isConnected, signer, provider);
+      toast.success(`Successfully unstaked ${amount} tCORE! Tx: ${receipt.hash.slice(0, 6)}...`);
       await refreshData();
       setAmount("");
     } catch (error) {
@@ -185,66 +176,30 @@ const Stake = () => {
 
   const handleClaimRewards = async () => {
     if (!ensureWalletConnected()) return;
-    
-    // Check if there are rewards to claim
-    if (weeklyRewards && parseFloat(weeklyRewards) <= 0) {
-      toast.info("You don't have any rewards to claim.");
-      return;
-    }
+
+    // if (!weeklyRewards || parseFloat(weeklyRewards) <= 0) {
+    //   toast.info("No rewards available to claim.");
+    //   return;
+    // }
 
     setLoading(true);
     try {
-      // First check for any pending rewards
-      try {
-        const pendingRewards = await getRewardBalance(rewardContractRead, address, isConnected, provider);
-        console.log("Pending rewards:", pendingRewards);
-        
-        if (parseFloat(pendingRewards) === 0) {
-          toast.info("No rewards available to claim at this time.");
-          setLoading(false);
-          return;
-        }
-      } catch (err) {
-        console.log("Could not check pending rewards:", err);
-        // Continue with claim attempt even if checking fails
-      }
-
-      console.log("Attempting to claim rewards using staking contract:", stakingContract.target);
-      
-      // Try to call the contract method directly with gas parameters
-      const tx = await stakingContract.claimReward({
-        gasLimit: 1000000, // Increase gas limit
-      });
-      
-      console.log("Transaction sent:", tx.hash);
-      toast.info(`Transaction submitted. Waiting for confirmation...`);
-      
+      // Assuming stakingContract has a claimReward method
+      const tx = await stakingContract.claimReward();
+      toast.info(`Claim transaction submitted: ${tx.hash.slice(0, 6)}...`);
       const receipt = await tx.wait();
-      console.log("Transaction confirmed:", receipt);
-      
       toast.success(`Rewards claimed! Tx: ${receipt.hash.slice(0, 6)}...`);
       await refreshData();
     } catch (error) {
       console.error("Claiming rewards error:", error);
-      
-      // Detailed error logging
-      console.log("Error details:", {
-        message: error.message,
-        code: error.code,
-        reason: error.reason || "Unknown reason",
-        data: error.data || "No data",
-        transaction: error.transaction || "No transaction details",
-      });
-      
-      // Improved error messages
-      if (error.message.includes("execution reverted")) {
-        toast.error("Claim failed: No rewards available or not enough time has passed since last claim.");
-      } else if (error.message.includes("insufficient funds")) {
-        toast.error("Claim failed: Insufficient gas to process transaction.");
-      } else if (error.code === "ACTION_REJECTED") {
+      if (error.code === "ACTION_REJECTED") {
         toast.info("Transaction rejected by user.");
+      } else if (error.message.includes("No rewards")) {
+        toast.error("No rewards available to claim.");
+      } else if (error.message.includes("insufficient funds")) {
+        toast.error("Insufficient gas to claim rewards.");
       } else {
-        toast.error(`Claiming rewards failed: ${error.message}`);
+        toast.error(`Claim failed: ${error.message}`);
       }
     } finally {
       setLoading(false);
@@ -253,23 +208,23 @@ const Stake = () => {
 
   const refreshData = async () => {
     if (!ensureWalletConnected()) return;
-    
+
     try {
       const balance = await provider.getBalance(address);
       setTcoreBalance(ethers.formatEther(balance));
-      
+
       const userStake = await getUserStake(stakingContractRead, address, isConnected, provider);
       setStakeDetails({
         amount: ethers.formatEther(userStake.amount),
         lastStakedTime: Number(userStake.lastStakedTime),
       });
-      
+
       const total = await getTotalStaked(stakingContractRead, isConnected, provider);
       setTotalStaked(total);
-      
+
       const reward = await getRewardBalance(rewardContractRead, address, isConnected, provider);
       setWeeklyRewards(reward);
-      
+
       try {
         const yieldValue = await provider.getBalance("0xA87e632f680A458b9eFb319a2448bC45E6C52117");
         setYieldPoolValue(ethers.formatEther(yieldValue));
@@ -280,6 +235,11 @@ const Stake = () => {
       console.error("Error refreshing data:", err);
     }
   };
+
+  // Skeleton Loader Component
+  const SkeletonLoader = () => (
+    <div className="animate-pulse bg-gray-700 h-8 w-32 rounded"></div>
+  );
 
   return (
     <section className="min-h-screen bg-[#0f0f0f] text-white font-lexend flex flex-col">
@@ -293,9 +253,7 @@ const Stake = () => {
             Please connect your wallet to access the staking dashboard.
           </p>
         ) : (
-          <div
-            className="w-full bg-[#1a1a1a] p-8 rounded-xl shadow-xl border border-[#ff9211]/30"
-          >
+          <div className="w-full bg-[#1a1a1a] p-8 rounded-xl shadow-xl border border-[#ff9211]/30">
             <h2 className="text-4xl font-rubik font-bold text-center mb-8 text-[#ff9211]">
               tCORE Staking Dashboard
             </h2>
@@ -309,13 +267,21 @@ const Stake = () => {
                   <div>
                     <p className="text-gray-400 text-sm">tCORE Balance</p>
                     <p className="text-[#ff9211] text-2xl font-semibold">
-                      {tcoreBalance !== null ? `${parseFloat(tcoreBalance).toFixed(4)} tCORE` : "Loading..."}
+                      {tcoreBalance !== null ? (
+                        `${parseFloat(tcoreBalance).toFixed(4)} tCORE`
+                      ) : (
+                        <SkeletonLoader />
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-gray-400 text-sm">Your Staked Amount</p>
                     <p className="text-[#ff9211] text-2xl font-semibold">
-                      {stakeDetails ? `${parseFloat(stakeDetails.amount).toFixed(4)} tCORE` : "Loading..."}
+                      {stakeDetails ? (
+                        `${parseFloat(stakeDetails.amount).toFixed(4)} tCORE`
+                      ) : (
+                        <SkeletonLoader />
+                      )}
                     </p>
                     {stakeDetails?.lastStakedTime > 0 && (
                       <p className="text-gray-500 text-xs mt-1">
@@ -338,19 +304,31 @@ const Stake = () => {
                   <div>
                     <p className="text-gray-400 text-sm">Total Staked in Pool</p>
                     <p className="text-[#ff9211] text-2xl font-semibold">
-                      {totalStaked !== null ? `${parseFloat(totalStaked).toFixed(4)} tCORE` : "Loading..."}
+                      {totalStaked !== null ? (
+                        `${parseFloat(totalStaked).toFixed(4)} tCORE`
+                      ) : (
+                        <SkeletonLoader />
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-gray-400 text-sm">Available Rewards</p>
                     <p className="text-[#ff9211] text-2xl font-semibold">
-                      {weeklyRewards !== null ? `${parseFloat(weeklyRewards).toFixed(4)} tCORE` : "Loading..."}
+                      {weeklyRewards !== null ? (
+                        `${parseFloat(weeklyRewards).toFixed(4)} tCORE`
+                      ) : (
+                        <SkeletonLoader />
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-gray-400 text-sm">Yield Pool Value</p>
                     <p className="text-[#ff9211] text-2xl font-semibold">
-                      {yieldPoolValue !== null ? `${parseFloat(yieldPoolValue).toFixed(4)} tCORE` : "Loading..."}
+                      {yieldPoolValue !== null ? (
+                        `${parseFloat(yieldPoolValue).toFixed(4)} tCORE`
+                      ) : (
+                        <SkeletonLoader />
+                      )}
                     </p>
                   </div>
                 </div>
@@ -387,7 +365,7 @@ const Stake = () => {
                 <button
                   onClick={handleClaimRewards}
                   className="px-8 py-3 bg-[#ff9211] text-[#0f0f0f] font-rubik font-semibold rounded-full shadow-lg hover:bg-[#e0820f] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={loading}
+                  disabled={loading || !weeklyRewards || parseFloat(weeklyRewards) <= 0}
                 >
                   {loading ? "Processing..." : "Claim Rewards"}
                 </button>

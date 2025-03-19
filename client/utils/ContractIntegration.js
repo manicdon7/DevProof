@@ -9,9 +9,9 @@ const StakingAbi = StakingArtifact.abi;
 const RewardAbi = RewardArtifact.abi;
 const YieldAbi = YieldArtifact.abi;
 
-const stakingContractAddress = "0x8f90426F741B7CbF71954048Fe1c975749B17f3c";
-const rewardContractAddress = "0x9B9446e6d0CDcf773d74E954F4cD61ee213aAc17";
-const yieldContractAddress = "0xA87e632f680A458b9eFb319a2448bC45E6C52117";
+const stakingContractAddress = "0x2Cef67B7caEE4BBB51EF853B14107DB0Bb9AeC45";
+const rewardContractAddress = "0xE0659a23565509c15f6880a927eBd2A5Bd91632A";
+const yieldContractAddress = "0xa558D2dF7c8a8BEd763D5C81C4e39d6EAA3C29bD";
 
 const EXPECTED_CHAIN_ID = 1114;
 
