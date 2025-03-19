@@ -180,7 +180,6 @@ export async function unstakeTokens(contract, amount, isConnected, signer, provi
 export async function claimRewards(contract, isConnected, signer, provider) {
   ensureContractReady(contract, isConnected, signer, provider, await signer.getAddress());
   try {
-    // Directly call the contract method
     const tx = await contract.claimReward();
     const receipt = await tx.wait();
     return receipt;
@@ -204,41 +203,28 @@ export async function getUserStake(contract, userAddress, isConnected, provider)
   }
 }
 
-export async function refreshStakeInfo(contract, userAddress, isConnected, provider) {
-  ensureContractReady(contract, isConnected, null, provider, userAddress, false);
-  try {
-    const stakeInfo = await getUserStake(contract, userAddress, isConnected, provider);
-    const balance = await provider.getBalance(userAddress);
-    return {
-      stakeInfo,
-      walletBalance: ethers.formatEther(balance),
-    };
-  } catch (error) {
-    console.error("Refresh stake info error:", error);
-    throw error;
-  }
-}
-
-export async function getTotalStaked(contract, isConnected, provider, address) {
-  ensureContractReady(contract, isConnected, null, provider, address, false);
-  try {
-    const totalStaked = await contract.getTotalStaked();
-    return ethers.formatEther(totalStaked);
-  } catch (error) {
-    console.error("Get total staked error:", error);
-    throw error;
-  }
-}
+    export async function getTotalStaked(contract, isConnected, provider, address) {
+      ensureContractReady(contract, isConnected, null, provider, address, false);
+      try {
+        const totalStaked = await contract.getTotalStaked();
+        return ethers.formatEther(totalStaked);
+      } catch (error) {
+        console.error("Get total staked error:", error);
+        throw error;
+      }
+    }
 
 export async function getRewardBalance(rewardContractRead, userAddress, isConnected, provider) {
   ensureContractReady(rewardContractRead, isConnected, null, provider, userAddress, false);
   try {
-    // Check if getPendingRewards exists; adjust based on your RewardDistribution ABI
+    // Adjust this based on your RewardDistribution contract's method
     let rewards;
     try {
-      rewards = await rewardContractRead.getPendingRewards(userAddress);
+      // Assuming 'pendingRewards' might be the correct method; adjust per ABI
+      rewards = await rewardContractRead.pendingRewards(userAddress);
     } catch (e) {
-      console.warn("getPendingRewards not found, falling back to contract balance:", e);
+      console.warn("pendingRewards not found, falling back to balance:", e);
+      // Fallback: Check contract balance (not ideal, adjust as needed)
       rewards = await provider.getBalance(rewardContractAddress);
     }
     return ethers.formatEther(rewards);
