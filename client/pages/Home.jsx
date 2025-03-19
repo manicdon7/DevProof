@@ -12,6 +12,7 @@ import { JoinSection } from "../components/JoinSection";
 import { FeaturedSection } from "../components/FeaturedSection";
 import { NewsletterSection } from "../components/NewsLetterSection";
 import ClickSpark from "../components/ClickSpark";
+import BotButton from "../components/BotButton";
 
 export default function HomePage() {
   const { address, isConnected } = useAccount();
@@ -59,6 +60,7 @@ export default function HomePage() {
         duration={400}
       >
         <div className="bg-[#1a1a1a] w-full">
+        <BotButton/>
           <HeroSection />
           <EmpowerSection />
           <HowItWorksSection />

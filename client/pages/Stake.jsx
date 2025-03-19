@@ -36,7 +36,7 @@ const Stake = () => {
 
   const ensureWalletConnected = () => {
     if (!isConnected || !address) {
-      toast.error("Please connect your wallet.");
+      // toast.error("Please connect your wallet.");
       return false;
     }
     if (contractsLoading) {
