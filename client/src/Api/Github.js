@@ -173,7 +173,12 @@ export const fetchUserIssues = async (username, token) => {
   ).length;
 
   const specialIssuesClosed = issueItems
-    .filter((issue) => issue.state === "closed" && issue.labels.length > 0)
+    .filter(
+      (issue) =>
+        issue.state === "closed" &&
+        issue.labels.length > 0 &&
+        issue.user?.login !== username
+    )
     .map((issue) => ({
       name: issue.user?.login || "Unknown",
       title: issue.title,
