@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Navbar } from "../components/navbar";
 import HomePage from "../pages/Home";
@@ -9,15 +9,15 @@ import { auth } from "../firebase.config";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Stake from "../pages/Stake";
+import NotFound from "../pages/NotFound";
 
 const App = () => {
-  const [user, setUser] = useState(null);
-
   useEffect(() => {
-    onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    onAuthStateChanged(auth, () => {
+      // Firebase auth state is handled by the ProtectedRoute component
     });
   }, []);
+
   return (
     <Router>
       <Navbar />
@@ -26,12 +26,12 @@ const App = () => {
         <Route
           path="/dashboard"
           element={
-            // <ProtectedRoute>
+            <ProtectedRoute>
               <Dashboard />
-            // {/* </ProtectedRoute> */}
+            </ProtectedRoute>
           }
         />
-      <Route
+        <Route
           path="/staketoken"
           element={
             <ProtectedRoute>
@@ -39,6 +39,7 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       <ToastContainer
         position="top-right"
@@ -50,7 +51,7 @@ const App = () => {
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="dark" // Base theme, we'll override with CSS
+        theme="dark"
       />
     </Router>
   );
