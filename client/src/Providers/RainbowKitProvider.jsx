@@ -17,8 +17,8 @@ const coreDaoTestnet = {
     decimals: 18,
   },
   rpcUrls: {
-    default: { http: [" https://rpc.test2.btcs.network"] },
-    public: { http: [" https://rpc.test2.btcs.network"] },
+    default: { http: ["https://rpc.test2.btcs.network"] },
+    public: { http: ["https://rpc.test2.btcs.network"] },
   },
   blockExplorers: {
     default: {
