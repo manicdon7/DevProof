@@ -86,3 +86,96 @@ npx hardhat compile
 
 ## License
 This project is licensed under the MIT License.
+
+## Folder Structure
+```
+DevProof/
+├─ client/
+│  ├─ components/
+│  │  ├─ BotButton.jsx
+│  │  ├─ ChatStorage.jsx
+│  │  ├─ ClickSpark.jsx
+│  │  ├─ CoreMate.jsx
+│  │  ├─ CustomConnectButton.jsx
+│  │  ├─ EmpowerSection.jsx
+│  │  ├─ FeaturedSection.jsx
+│  │  ├─ FuzzyText.jsx
+│  │  ├─ GithubProvider.jsx
+│  │  ├─ HeroSection.jsx
+│  │  ├─ HowItWorksSection.jsx
+│  │  ├─ JoinSection.jsx
+│  │  ├─ LeaderBoardSection.jsx
+│  │  ├─ navbar.jsx
+│  │  ├─ NewsLetterSection.jsx
+│  │  ├─ RotatingText.jsx
+│  │  ├─ SpotLightCard.jsx
+│  │  ├─ WhyChooseSection.jsx
+│  ├─ context/
+│  │  └─ index.jsx
+│  ├─ hooks/
+│  │  ├─ usePinata.js
+│  │  └─ useSigner.js
+│  ├─ json/
+│  │  └─ abi/
+│  │     ├─ RewardDistribution.json
+│  │     ├─ Staking.json
+│  │     └─ YieldPool.json
+│  ├─ pages/
+│  │  ├─ Dashboard.jsx
+│  │  ├─ GithubPermission.jsx
+│  │  ├─ Home.jsx
+│  │  ├─ LeaderBoard.jsx
+│  │  ├─ NotFound.jsx
+│  │  ├─ Rewards.jsx
+│  │  ├─ Stake.jsx
+│  ├─ public/
+│  │  ├─ fonts/
+│  │  │  ├─ Lexend[wght].ttf
+│  │  │  ├─ Rubik-Regular.ttf
+│  │  ├─ core.png
+│  │  ├─ devproof-logo.png
+│  │  ├─ vite.svg
+│  ├─ src/
+│  │  ├─ Api/
+│  │  │  └─ Github.js
+│  │  ├─ Providers/
+│  │  │  ├─ Protected.jsx
+│  │  │  ├─ RainbowKitProvider.jsx
+│  │  ├─ services/
+│  │  │  └─ githubServices.js
+│  │  ├─ App.jsx
+│  │  ├─ index.css
+│  │  ├─ main.jsx
+│  ├─ utils/
+│  │  └─ ContractIntegration.js
+│  ├─ .env
+│  ├─ .env.example
+│  ├─ .gitignore
+│  ├─ eslint.config.js
+│  ├─ firebase.config.js
+│  ├─ index.html
+│  ├─ LICENSE
+│  ├─ package-lock.json
+│  ├─ package.json
+│  ├─ README.md
+│  ├─ vercel.json
+│  └─ vite.config.js
+├─ server/
+│  ├─ lib/
+│  │  ├─ schema/
+│  │  │  └─ index.js
+│  │  ├─ Connect.config.js
+│  ├─ utils/
+│  │  ├─ classify.js
+│  │  ├─ coreMateUtils.js
+│  │  ├─ SendEmail.js
+│  │  ├─ Templates.js
+│  ├─ .env
+│  ├─ .gitignore
+│  ├─ index.js
+│  ├─ package-lock.json
+│  ├─ package.json
+│  ├─ vercel.json
+└─ README.md
+```
+
