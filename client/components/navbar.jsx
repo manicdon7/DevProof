@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import Cookies from "js-cookie";
 import CustomConnectButton from "../components/CustomConnectButton";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,52 +13,25 @@ export function Navbar() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-
-      if (currentUser) {
-        const { email, displayName } = currentUser;
-
-        await sendRegistrationEmail(email, displayName);
-      }
     });
-
     return () => unsubscribe();
   }, [auth]);
-
-  const sendRegistrationEmail = async (email, name) => {
-    try {
-      const response = await fetch(
-        "https://dev-proof-backend.vercel.app/api/send-registration-email",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, name }),
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) console.log("Email sent successfully:", data.message);
-      else console.error("Failed to send email:", data.message);
-    } catch (error) {
-      console.error("Error sending registration email:", error);
-    }
-  };
 
   const handleLogout = async () => {
     await signOut(auth);
     Cookies.remove("address");
-    sessionStorage.removeItem("oauthAccessToken");
     setDropdownOpen(false);
+    sessionStorage.removeItem("oauthAccessToken");
     navigate("/");
   };
 
   return (
     <header className="p-4 bg-[#0f0f0f] shadow-lg sticky top-0 z-50 font-lexend">
       <div className="container flex items-center justify-between h-16 mx-auto">
-        {/* Logo */}
         <a
-          href="#"
+          href="/"
           className="flex items-center gap-2 text-lg font-rubik font-semibold"
         >
           <img
@@ -71,17 +44,31 @@ export function Navbar() {
           </span>
         </a>
 
-        {/* Desktop Navigation */}
         <nav className="hidden lg:flex space-x-8">
-          {["Home", "Dashboard", "Stake", "Leaderboard", "Bounty"].map((item) => (
-            <a
-              key={item}
-              href={`/${item.toLowerCase()}`}
-              className="text-white hover:text-[#ff9211] transition-colors duration-300 font-lexend font-medium tracking-wide"
-            >
-              {item}
-            </a>
-          ))}
+          <a
+            href="/"
+            className="text-white hover:text-[#ff9211] transition-colors duration-300 font-lexend font-medium tracking-wide"
+          >
+            Home
+          </a>
+          <a
+            href="/dashboard"
+            className="text-white hover:text-[#ff9211] transition-colors duration-300 font-lexend font-medium tracking-wide"
+          >
+            Dashboard
+          </a>
+          <a
+            href="/staketoken"
+            className="text-white hover:text-[#ff9211] transition-colors duration-300 font-lexend font-medium tracking-wide"
+          >
+            Stake
+          </a>
+          <a
+            href="/leaderboard"
+            className="text-white hover:text-[#ff9211] transition-colors duration-300 font-lexend font-medium tracking-wide"
+          >
+            Leaderboard
+          </a>
         </nav>
         <div className="hidden lg:flex items-center space-x-6">
           <CustomConnectButton />
@@ -89,7 +76,7 @@ export function Navbar() {
             <div className="relative">
               <motion.button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="w-10 h-10 rounded-full border-2 border-[#ff9211]/50 hover:border-[#ff9211] transition-all duration-300 focus:outline-none"
+                className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#ff9211]/50 hover:border-[#ff9211] transition-all duration-300 focus:outline-none"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -102,7 +89,6 @@ export function Navbar() {
                   className="w-full h-full object-cover"
                 />
               </motion.button>
-
               {dropdownOpen && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
@@ -122,17 +108,16 @@ export function Navbar() {
           )}
         </div>
 
-        {/* Mobile Menu Toggle */}
         <button
           className="p-2 lg:hidden focus:outline-none focus:ring-2 focus:ring-[#ff9211] rounded-md"
           onClick={() => setIsOpen(!isOpen)}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="w-6 h-6 text-[#ff9211]"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            className="w-6 h-6 text-[#ff9211]"
           >
             <path
               strokeLinecap="round"
@@ -144,28 +129,42 @@ export function Navbar() {
         </button>
       </div>
 
-      {/* Mobile Menu */}
       <nav
         className={`lg:hidden flex flex-col items-center bg-[#0f0f0f] p-4 space-y-4 shadow-xl ${
           isOpen ? "block" : "hidden"
         }`}
       >
-        {["Home", "Dashboard", "Stake", "Leaderboard"].map((item) => (
-          <a
-            key={item}
-            href={`/${item.toLowerCase()}`}
-            className="text-white hover:text-[#ff9211] transition-colors duration-300 font-lexend font-medium w-full text-center py-2 hover:bg-[#1a1a1a] rounded-md"
-          >
-            {item}
-          </a>
-        ))}
+        <a
+          href="/"
+          className="text-white hover:text-[#ff9211] transition-colors duration-300 font-lexend font-medium w-full text-center py-2 hover:bg-[#1a1a1a] rounded-md"
+        >
+          Home
+        </a>
+        <a
+          href="/dashboard"
+          className="text-white hover:text-[#ff9211] transition-colors duration-300 font-lexend font-medium w-full text-center py-2 hover:bg-[#1a1a1a] rounded-md"
+        >
+          Dashboard
+        </a>
+        <a
+          href="/staketoken"
+          className="text-white hover:text-[#ff9211] transition-colors duration-300 font-lexend font-medium w-full text-center py-2 hover:bg-[#1a1a1a] rounded-md"
+        >
+          Stake
+        </a>
+        <a
+          href="/leaderboard"
+          className="text-white hover:text-[#ff9211] transition-colors duration-300 font-lexend font-medium w-full text-center py-2 hover:bg-[#1a1a1a] rounded-md"
+        >
+          Leaderboard
+        </a>
         <div className="flex flex-col items-center space-y-4 w-full">
-          <CustomConnectButton />
+          <CustomConnectButton /> {/* Added Connect Button for mobile */}
           {user && (
             <div className="relative">
               <motion.button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="w-10 h-10 rounded-full border-2 border-[#ff9211]/50 hover:border-[#ff9211] transition-all duration-300 focus:outline-none"
+                className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#ff9211]/50 hover:border-[#ff9211] transition-all duration-300 focus:outline-none"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -178,7 +177,6 @@ export function Navbar() {
                   className="w-full h-full object-cover"
                 />
               </motion.button>
-
               {dropdownOpen && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}

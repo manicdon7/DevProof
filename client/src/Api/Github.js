@@ -267,24 +267,6 @@ export const getTotalForksForAllRepositories = async (
   }
 };
 
-export const pushToLeaderboard = async (wallet, name, score) => {
-  const dataObj = {
-    wallet: wallet,
-    username: name,
-    score: score,
-  };
-  const res = await axios.post(
-    "http://localhost:5000/api/leaderboard",
-    dataObj,
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
-  );
-  return res;
-};
-
 export const getLastUpdatedForAllRepositories = async (
   userScreenName,
   token

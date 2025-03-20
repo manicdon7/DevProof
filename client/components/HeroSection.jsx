@@ -7,7 +7,7 @@ import RotatingText from "../components/RotatingText.jsx";
 
 export function HeroSection() {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const navigate = useNavigate();
 
   const handleGetStarted = async () => {
@@ -16,7 +16,7 @@ export function HeroSection() {
       if (!isConnected) {
         toast.dark("Connect Your Wallet", { autoClose: 2000 });
       } else {
-        sessionStorage.setItem("connected", "true");
+        sessionStorage.setItem("connected", address);
         navigate("/staketoken");
       }
     } catch (error) {
@@ -139,9 +139,21 @@ export function HeroSection() {
 
                 {/* Rocket Body with Gradient */}
                 <defs>
-                  <linearGradient id="rocketGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style={{ stopColor: "#ff9211", stopOpacity: 1 }} />
-                    <stop offset="100%" style={{ stopColor: "#e0820f", stopOpacity: 1 }} />
+                  <linearGradient
+                    id="rocketGradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                  >
+                    <stop
+                      offset="0%"
+                      style={{ stopColor: "#ff9211", stopOpacity: 1 }}
+                    />
+                    <stop
+                      offset="100%"
+                      style={{ stopColor: "#e0820f", stopOpacity: 1 }}
+                    />
                   </linearGradient>
                 </defs>
                 <path
@@ -172,7 +184,14 @@ export function HeroSection() {
                 />
 
                 {/* Glow Effect */}
-                <circle cx="24" cy="24" r="10" fill="#ff9211" opacity="0.2" filter="blur(5px)" />
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="10"
+                  fill="#ff9211"
+                  opacity="0.2"
+                  filter="blur(5px)"
+                />
               </svg>
             </motion.span>
           </motion.h1>
@@ -441,9 +460,11 @@ export function HeroSection() {
               {[0, 72, 144, 216, 288].map((angle, index) => (
                 <motion.path
                   key={`ai-scoring-${index}`}
-                  d={`M100,100 Q${100 + 30 * Math.cos(((angle - 20) * Math.PI) / 180)
-                    },${100 + 30 * Math.sin(((angle - 20) * Math.PI) / 180)} ${100 + 60 * Math.cos((angle * Math.PI) / 180)
-                    },${100 + 60 * Math.sin((angle * Math.PI) / 180)}`}
+                  d={`M100,100 Q${
+                    100 + 30 * Math.cos(((angle - 20) * Math.PI) / 180)
+                  },${100 + 30 * Math.sin(((angle - 20) * Math.PI) / 180)} ${
+                    100 + 60 * Math.cos((angle * Math.PI) / 180)
+                  },${100 + 60 * Math.sin((angle * Math.PI) / 180)}`}
                   stroke="#4a9eff"
                   strokeWidth="0.8"
                   fill="none"
@@ -533,8 +554,8 @@ export function HeroSection() {
                           row === col
                             ? "#00ffaa"
                             : Math.random() > 0.7
-                              ? "#4a9eff"
-                              : "#00ffaa",
+                            ? "#4a9eff"
+                            : "#00ffaa",
                       }}
                       transition={{
                         duration: 4,
