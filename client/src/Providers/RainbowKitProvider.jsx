@@ -1,7 +1,7 @@
 import "@rainbow-me/rainbowkit/styles.css";
 import { getDefaultConfig, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { WagmiProvider } from "wagmi";
-import { coreDao, polygonAmoy } from "wagmi/chains";
+import { coreDao } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { UserProvider } from "../../context";
 
@@ -32,7 +32,7 @@ const coreDaoTestnet = {
 const config = getDefaultConfig({
   appName: "DevProof",
   projectId: import.meta.env.VITE_RAINBOWKIT_PROJECT_ID,
-  chains: [coreDao, coreDaoTestnet, polygonAmoy],
+  chains: [coreDao, coreDaoTestnet],
   ssr: false,
 });
 

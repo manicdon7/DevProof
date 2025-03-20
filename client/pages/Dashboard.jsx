@@ -21,7 +21,6 @@ import {
 import githubService from "../src/services/githubServices";
 import axios from "axios";
 
-// Skeleton Loader Component
 const SkeletonCard = () => (
   <div className="bg-gray-800/50 p-6 rounded-2xl animate-pulse">
     <div className="h-4 bg-gray-700/50 rounded w-3/4 mb-4"></div>
@@ -88,6 +87,28 @@ export default function DashBoard() {
       };
 
       sessionStorage.setItem("dataStore", JSON.stringify(dataStore));
+      const stakeres = sessionStorage.getItem("stake");
+
+      if (stakeres) {
+        const storedData = sessionStorage.getItem("dataStore");
+        const response = JSON.parse(storedData);
+
+        async function main() {
+          try {
+            await axios.post(
+              "https://dev-proof-backend.vercel.app/api/leaderboard",
+              {
+                wallet: response.wallet,
+                username: response.userName,
+                score: response.score ?? 0,
+              }
+            );
+          } catch (error) {
+            console.error("Error submitting leaderboard:", error);
+          }
+        }
+        main();
+      }
     }
   }, [
     dataStatus,

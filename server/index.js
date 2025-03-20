@@ -234,11 +234,22 @@ app.post("/api/leaderboard", async (req, res) => {
     const existingRecord = await collection.findOne({ wallet });
 
     if (existingRecord) {
+      if (existingRecord.score !== score) {
+        console.time("updateLeaderboardData");
+        const updateResult = await collection.updateOne(
+          { wallet },
+          { $set: { score, timestamp: new Date() } }
+        );
+        console.timeEnd("updateLeaderboardData");
+        console.timeEnd("leaderboard-post");
+        return res
+          .status(200)
+          .json({ success: true, updated: true, result: updateResult });
+      }
       console.timeEnd("leaderboard-post");
-      return res.status(200).json({
-        success: true,
-        result: existingRecord,
-      });
+      return res
+        .status(200)
+        .json({ success: true, updated: false, result: existingRecord });
     }
 
     console.time("insertLeaderboardData");
@@ -260,7 +271,7 @@ app.post("/api/leaderboard", async (req, res) => {
     console.error("Leaderboard insert error:", err);
     console.timeEnd("leaderboard-post");
     return res.status(500).json({
-      error: "Error inserting leaderboard data",
+      error: "Error inserting/updating leaderboard data",
       details: err.message,
     });
   }

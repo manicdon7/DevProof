@@ -43,9 +43,9 @@ const App = () => {
         <Route
           path="/leaderboard"
           element={
-            <ProtectedRouteSession>
+            <ProtectedRoute>
               <LeaderBoard />
-            </ProtectedRouteSession>
+            </ProtectedRoute>
           }
         />
 
