@@ -176,12 +176,10 @@ app.post("/api/coremate", async (req, res) => {
   }
 });
 
-// Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Server is running" });
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
@@ -204,7 +202,16 @@ app.post("/api/leaderboard", async (req, res) => {
     const db = await ConnectConfig();
     const collection = db.leaderboard;
 
-    // Insert leaderboard data
+    const existingRecord = await collection.findOne({ wallet });
+
+    if (existingRecord) {
+      console.timeEnd("leaderboard-post");
+      return res.status(200).json({
+        success: true,
+        result: existingRecord,
+      });
+    }
+
     console.time("insertLeaderboardData");
     const leaderboardData = {
       wallet,
@@ -227,6 +234,24 @@ app.post("/api/leaderboard", async (req, res) => {
       error: "Error inserting leaderboard data",
       details: err.message,
     });
+  }
+});
+
+app.get("/api/top-users", async (req, res) => {
+  try {
+    const db = await ConnectConfig();
+    const collection = db.leaderboard;
+    const topUsers = await collection
+      .find()
+      .sort({ score: -1 })
+      .limit(5)
+      .project({ wallet: 1, username: 1, score: 1, _id: 0 })
+      .toArray(); 
+
+    res.json({ success: true, users: topUsers });
+  } catch (error) {
+    console.error("Error fetching top users:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
 
