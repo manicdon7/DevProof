@@ -241,16 +241,21 @@ app.get("/api/top-users", async (req, res) => {
   try {
     const db = await ConnectConfig();
     const collection = db.leaderboard;
-    const topUsers = await collection
+
+    const allUsers = await collection
       .find()
       .sort({ score: -1 })
-      .limit(5)
       .project({ wallet: 1, username: 1, score: 1, _id: 0 })
-      .toArray(); 
+      .toArray();
 
-    res.json({ success: true, users: topUsers });
+    const top5Users = allUsers.slice(0, 5);
+
+    console.log("All Users:", allUsers);
+    console.log("Top 5 Users:", top5Users);
+
+    res.json({ success: true, users: allUsers, top5: top5Users });
   } catch (error) {
-    console.error("Error fetching top users:", error);
+    console.error("Error fetching users:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });

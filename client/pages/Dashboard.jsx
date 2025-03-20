@@ -68,6 +68,7 @@ export default function DashBoard() {
         (review || 0) * 7;
 
       setTotalscore(score);
+      
     }
   }, [
     dataStatus,
