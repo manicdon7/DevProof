@@ -9,7 +9,9 @@ const LeaderBoard = () => {
     const fetchLeaderboard = async () => {
       try {
         console.log("Fetching leaderboard...");
-        const response = await axios.get("http://localhost:5000/api/top-users");
+        const response = await axios.get(
+          "https://dev-proof-backend.vercel.app/api/top-users"
+        );
 
         if (response?.data?.success) {
           setLeaderboardData(response.data.users);
