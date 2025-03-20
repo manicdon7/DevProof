@@ -51,7 +51,6 @@ app.get("/", (req, res) => {
   res.status(200).json(serverStatus);
 });
 
-// Route for sending registration emails
 app.post("/api/send-registration-email", async (req, res) => {
   try {
     const { email, name } = req.body;

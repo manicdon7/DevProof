@@ -19,10 +19,45 @@ export function Navbar() {
     return () => unsubscribe();
   }, [auth]);
 
+  // const sendRegistrationEmail = async (email, name) => {
+  //   try {
+  //     const response = await fetch(
+  //       "http://localhost:5000/api/send-registration-email",
+  //       {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({ email, name }),
+  //       }
+  //     );
+
+  //     const data = await response.json();
+
+  //     if (response.ok) {
+  //       console.log("Email sent successfully:", data);
+  //     } else {
+  //       console.error("Error sending email:", data.message);
+  //     }
+  //   } catch (error) {
+  //     console.error("Request failed:", error);
+  //   }
+  // };
+  // useEffect(() => {
+  //   if (user) {
+  //     const email = user.email;
+  //     const name = user.displayName;
+  //     if (email && name) {
+  //       sendRegistrationEmail(email, name);
+  //     }
+  //   }
+  // }, [user]);
+
   const handleLogout = async () => {
     await signOut(auth);
     Cookies.remove("address");
     setDropdownOpen(false);
+    sessionStorage.removeItem("oauthAccessToken");
     navigate("/");
   };
 
