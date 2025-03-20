@@ -17,7 +17,7 @@ export function HeroSection() {
         toast.dark("Connect Your Wallet", { autoClose: 2000 });
       } else {
         sessionStorage.setItem("connected", "true");
-        navigate("/staketoken");
+        // navigate("/staketoken");
       }
     } catch (error) {
       console.error("Navigation error:", error);

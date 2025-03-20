@@ -11,6 +11,7 @@ import "react-toastify/dist/ReactToastify.css";
 import Stake from "../pages/Stake";
 import NotFound from "../pages/NotFound";
 import { TermsAndConditions } from "../pages/GithubPermission";
+import LeaderBoard from "../pages/LeaderBoard";
 
 const App = () => {
   useEffect(() => {
@@ -35,6 +36,14 @@ const App = () => {
           element={
             <ProtectedRouteSession>
               <Stake />
+            </ProtectedRouteSession>
+          }
+        />
+        <Route
+          path="/leaderboard"
+          element={
+            <ProtectedRouteSession>
+              <LeaderBoard />
             </ProtectedRouteSession>
           }
         />

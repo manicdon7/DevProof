@@ -10,8 +10,10 @@ import {
   getRewardBalance,
 } from "../utils/ContractIntegration";
 import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 
 const Stake = () => {
+  const navigate = useNavigate();
   const {
     stakingContract,
     stakingContractRead,
@@ -413,6 +415,10 @@ const Stake = () => {
               <p>Reward Rate: 5% (example rate)</p>
             </div>
           </div>
+        </div>
+
+        <div className="mt-16 text-center text-gray-400 text-sm animate-fade-in">
+          <p>Completed Your Stake ? Check Your <span className="text-[#ff9211] hover:underline cursor-pointer" onClick={() => navigate("/dashboard")}>Dashboard</span></p>
         </div>
 
         {/* Footer */}
