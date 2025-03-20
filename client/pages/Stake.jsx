@@ -4,7 +4,7 @@ import {
   useContracts,
   stakeTokens,
   unstakeTokens,
-  distributeTopContributors, // Import new function
+  distributeTopContributors,
   getUserStake,
   getTotalStaked,
   getRewardBalance,
@@ -12,6 +12,7 @@ import {
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import axios from "axios";
 
 const Stake = () => {
   const navigate = useNavigate();
@@ -55,7 +56,14 @@ const Stake = () => {
       toast.error(`Contract error: ${error}`);
       return false;
     }
-    if (!stakingContract || !signer || !provider || !stakingContractRead || !rewardContractRead || !yieldContract) {
+    if (
+      !stakingContract ||
+      !signer ||
+      !provider ||
+      !stakingContractRead ||
+      !rewardContractRead ||
+      !yieldContract
+    ) {
       toast.error("Contracts not initialized. Please reconnect your wallet.");
       return false;
     }
@@ -70,7 +78,12 @@ const Stake = () => {
         const balance = await provider.getBalance(address);
         setCOREBalance(ethers.formatEther(balance));
 
-        const userStake = await getUserStake(stakingContractRead, address, isConnected, provider);
+        const userStake = await getUserStake(
+          stakingContractRead,
+          address,
+          isConnected,
+          provider
+        );
         setStakeDetails({
           amount: userStake.amount,
           lastStakedTime: Number(userStake.lastStakedTime),
@@ -81,10 +94,18 @@ const Stake = () => {
           setGithubUsername(userStake.githubUsername);
         }
 
-        const total = await getTotalStaked(stakingContractRead, isConnected, provider);
+        const total = await getTotalStaked(
+          stakingContractRead,
+          isConnected,
+          provider
+        );
         setTotalStaked(total);
 
-        const reward = await getRewardBalance(rewardContractRead, isConnected, provider);
+        const reward = await getRewardBalance(
+          rewardContractRead,
+          isConnected,
+          provider
+        );
         setWeeklyRewards(reward);
 
         try {
@@ -101,7 +122,10 @@ const Stake = () => {
           const STAKE_PERIOD = 7 * 24 * 60 * 60; // 7 days in seconds
           if (timeSinceStake < STAKE_PERIOD) {
             let penaltyRate = 5; // PENALTY_PERCENT from contract (5%)
-            const penalty = (BigInt(ethers.parseEther(userStake.amount)) * BigInt(penaltyRate)) / BigInt(100);
+            const penalty =
+              (BigInt(ethers.parseEther(userStake.amount)) *
+                BigInt(penaltyRate)) /
+              BigInt(100);
             const daysLeft = Math.ceil((STAKE_PERIOD - timeSinceStake) / 86400);
             setPenaltyInfo({
               penalty: ethers.formatEther(penalty),
@@ -122,7 +146,16 @@ const Stake = () => {
     };
 
     fetchData();
-  }, [stakingContractRead, rewardContractRead, yieldContract, address, isConnected, provider, contractsLoading, refreshTrigger]);
+  }, [
+    stakingContractRead,
+    rewardContractRead,
+    yieldContract,
+    address,
+    isConnected,
+    provider,
+    contractsLoading,
+    refreshTrigger,
+  ]);
 
   const showTxInfo = (message, hash) => {
     setTxInfo({ message, hash });
@@ -133,7 +166,9 @@ const Stake = () => {
     if (!ensureWalletConnected()) return;
 
     if (!githubUsername) {
-      toast.warn("GitHub username is required. Please enter your GitHub username.");
+      toast.warn(
+        "GitHub username is required. Please enter your GitHub username."
+      );
       return;
     }
     const stakeAmount = parseFloat(amount);
@@ -144,11 +179,47 @@ const Stake = () => {
 
     setLoading(true);
     try {
-      const receipt = await stakeTokens(stakingContract, githubUsername, isConnected, signer, provider, address, {
-        value: ethers.parseEther(amount),
-      });
-      toast.success(`Successfully staked ${amount} tCORE with GitHub: ${githubUsername}!`);
+      const receipt = await stakeTokens(
+        stakingContract,
+        githubUsername,
+        isConnected,
+        signer,
+        provider,
+        address,
+        {
+          value: ethers.parseEther(amount),
+        }
+      );
+      toast.success(
+        `Successfully staked ${amount} tCORE with GitHub: ${githubUsername}!`
+      );
       showTxInfo(`Staked ${amount} tCORE`, receipt.transactionHash);
+
+      const storedData = sessionStorage.getItem("dataStore");
+
+      if (storedData) {
+        const response = JSON.parse(storedData);
+
+        try {
+          const res = await axios.post(
+            "https://dev-proof-backend.vercel.app/api/leaderboard",
+            {
+              wallet: response.wallet,
+              username: response.userName,
+              score: response.score ?? 0,
+            }
+          );
+
+          if (res.data) {
+            navigate("/leaderboard");
+          }
+        } catch (error) {
+          console.error("Error submitting leaderboard:", error);
+        }
+      } else {
+        console.error("No data found in sessionStorage");
+      }
+
       setAmount("");
       setRefreshTrigger((prev) => prev + 1);
     } catch (error) {
@@ -178,15 +249,29 @@ const Stake = () => {
       setLoading(true);
 
       const amountInWei = ethers.parseEther(stakeDetails.amount);
-      console.log("Unstaking with address:", address, "Amount (wei):", amountInWei.toString());
-      const receipt = await unstakeTokens(stakingContract, isConnected, signer, provider, address, amountInWei);
+      console.log(
+        "Unstaking with address:",
+        address,
+        "Amount (wei):",
+        amountInWei.toString()
+      );
+      const receipt = await unstakeTokens(
+        stakingContract,
+        isConnected,
+        signer,
+        provider,
+        address,
+        amountInWei
+      );
 
       toast.success("Successfully unstaked your tCORE!");
       showTxInfo("Unstaked tCORE", receipt.transactionHash);
       setRefreshTrigger((prev) => prev + 1);
     } catch (error) {
       console.error("Unstaking error:", error);
-      toast.error(`Unstaking failed: ${error.message || error.reason || "Unknown error"}`);
+      toast.error(
+        `Unstaking failed: ${error.message || error.reason || "Unknown error"}`
+      );
     } finally {
       setLoading(false);
     }
@@ -194,28 +279,36 @@ const Stake = () => {
 
   const handleDistributeTopContributors = async () => {
     if (!ensureWalletConnected()) return;
-  
+
     setLoading(true);
     try {
       if (!stakingContract || !signer) {
         throw new Error("Staking contract or signer not initialized.");
       }
-  
+
       // Parse input fields
       const userArray = topUsers.split(",").map((u) => u.trim());
-      const rewardArray = rewards.split(",").map((r) => ethers.parseEther(r.trim()));
-  
-      if (userArray.length === 0 || rewardArray.length === 0 || userArray.length !== rewardArray.length) {
-        throw new Error("Invalid input: Ensure top users and rewards match and are non-empty.");
+      const rewardArray = rewards
+        .split(",")
+        .map((r) => ethers.parseEther(r.trim()));
+
+      if (
+        userArray.length === 0 ||
+        rewardArray.length === 0 ||
+        userArray.length !== rewardArray.length
+      ) {
+        throw new Error(
+          "Invalid input: Ensure top users and rewards match and are non-empty."
+        );
       }
-  
+
       // Validate addresses
       userArray.forEach((user) => {
         if (!ethers.isAddress(user)) {
           throw new Error(`Invalid address: ${user}`);
         }
       });
-  
+
       // Check if caller is owner
       const owner = await stakingContract.owner();
       console.log("Contract owner:", owner);
@@ -223,7 +316,7 @@ const Stake = () => {
       if (address.toLowerCase() !== owner.toLowerCase()) {
         throw new Error("Only the contract owner can distribute rewards.");
       }
-  
+
       // Check staking status
       for (const user of userArray) {
         const stake = await stakingContract.stakes(user);
@@ -231,21 +324,38 @@ const Stake = () => {
           throw new Error(`User ${user} is not staking`);
         }
       }
-  
+
       console.log("Distributing to:", userArray);
-      console.log("Rewards (wei):", rewardArray.map(r => r.toString()));
-  
-      const receipt = await distributeTopContributors(stakingContract, isConnected, signer, provider, address, userArray, rewardArray);
+      console.log(
+        "Rewards (wei):",
+        rewardArray.map((r) => r.toString())
+      );
+
+      const receipt = await distributeTopContributors(
+        stakingContract,
+        isConnected,
+        signer,
+        provider,
+        address,
+        userArray,
+        rewardArray
+      );
       console.log("Transaction confirmed with hash:", receipt.transactionHash);
-  
-      toast.success(`Distributed rewards to ${userArray.length} top contributors! Transaction Hash: ${receipt.transactionHash}`);
+
+      toast.success(
+        `Distributed rewards to ${userArray.length} top contributors! Transaction Hash: ${receipt.transactionHash}`
+      );
       showTxInfo("Rewards Distributed", receipt.transactionHash);
       setRefreshTrigger((prev) => prev + 1);
       setTopUsers("");
       setRewards("");
     } catch (error) {
       console.error("Distribute top contributors error:", error);
-      toast.error(`Distribution failed: ${error.message || error.reason || "Unknown error"}`);
+      toast.error(
+        `Distribution failed: ${
+          error.message || error.reason || "Unknown error"
+        }`
+      );
     } finally {
       setLoading(false);
     }
@@ -272,7 +382,8 @@ const Stake = () => {
             Stake on DevProof
           </h1>
           <p className="mt-3 text-gray-400 text-lg md:text-xl max-w-lg mx-auto">
-            Lock your tCORE and amplify your open-source impact on the CORE Testnet.
+            Lock your tCORE and amplify your open-source impact on the CORE
+            Testnet.
           </p>
         </motion.div>
 
@@ -298,12 +409,16 @@ const Stake = () => {
         {contractsLoading ? (
           <div className="text-center py-16">
             <div className="inline-block w-16 h-16 border-4 border-[#ff9211]/20 border-t-[#ff9211] rounded-full animate-spin"></div>
-            <p className="text-gray-400 text-xl mt-4">Stake and Contribute for Rewards...</p>
+            <p className="text-gray-400 text-xl mt-4">
+              Stake and Contribute for Rewards...
+            </p>
           </div>
         ) : error ? (
           <div className="text-center py-16 bg-[#1a1a1a]/80 backdrop-blur-md rounded-3xl shadow-xl border border-[#ff9211]/40">
             <div className="text-[#ff9211] text-5xl mb-4">⚠️</div>
-            <div className="text-center text-[#ff9211] text-xl font-semibold mb-2">Contract Error</div>
+            <div className="text-center text-[#ff9211] text-xl font-semibold mb-2">
+              Contract Error
+            </div>
             <p className="text-gray-400 max-w-lg mx-auto">{error}</p>
           </div>
         ) : !isConnected || !address ? (
@@ -313,8 +428,12 @@ const Stake = () => {
             className="text-center py-16 bg-[#1a1a1a]/80 backdrop-blur-md rounded-3xl shadow-xl border border-[#ff9211]/40"
           >
             <div className="text-[#ff9211] text-5xl mb-4">🔌</div>
-            <div className="text-gray-300 text-xl font-medium mb-2">Wallet Not Connected</div>
-            <p className="text-gray-400 max-w-lg mx-auto">Connect your wallet to stake tCORE and join DevProof.</p>
+            <div className="text-gray-300 text-xl font-medium mb-2">
+              Wallet Not Connected
+            </div>
+            <p className="text-gray-400 max-w-lg mx-auto">
+              Connect your wallet to stake tCORE and join DevProof.
+            </p>
           </motion.div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -325,24 +444,35 @@ const Stake = () => {
               className="lg:col-span-5 bg-[#1a1a1a]/80 backdrop-blur-md p-8 rounded-3xl shadow-xl border border-[#ff9211]/40 relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-[#ff9211]/10 to-[#e0820f]/10 opacity-50"></div>
-              <h2 className="text-3xl font-rubik font-bold text-[#ff9211] mb-6 relative z-10">Staking Controls</h2>
+              <h2 className="text-3xl font-rubik font-bold text-[#ff9211] mb-6 relative z-10">
+                Staking Controls
+              </h2>
               <div className="space-y-6 relative z-10">
                 <div>
-                  <label className="text-gray-300 text-sm font-medium mb-2 block">GitHub Username</label>
+                  <label className="text-gray-300 text-sm font-medium mb-2 block">
+                    GitHub Username
+                  </label>
                   <input
                     type="text"
                     value={githubUsername}
                     onChange={handleGithubUsernameChange}
                     placeholder="Enter your GitHub username"
                     className="w-full px-4 py-3 bg-[#141414] text-gray-200 border border-[#ff9211]/60 rounded-full focus:outline-none focus:ring-2 focus:ring-[#ff9211] placeholder-gray-500 transition-all duration-300"
-                    disabled={loading || (stakeDetails && parseFloat(stakeDetails.amount) > 0)}
+                    disabled={
+                      loading ||
+                      (stakeDetails && parseFloat(stakeDetails.amount) > 0)
+                    }
                   />
                   {stakeDetails && parseFloat(stakeDetails.amount) > 0 && (
-                    <p className="text-gray-400 text-xs mt-1">GitHub username locked while staking</p>
+                    <p className="text-gray-400 text-xs mt-1">
+                      GitHub username locked while staking
+                    </p>
                   )}
                 </div>
                 <div>
-                  <label className="text-gray-300 text-sm font-medium mb-2 block">Stake Amount (tCORE)</label>
+                  <label className="text-gray-300 text-sm font-medium mb-2 block">
+                    Stake Amount (tCORE)
+                  </label>
                   <input
                     type="number"
                     value={amount}
@@ -355,7 +485,9 @@ const Stake = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-gray-300 text-sm font-medium mb-2 block">Top Users (comma-separated addresses)</label>
+                  <label className="text-gray-300 text-sm font-medium mb-2 block">
+                    Top Users (comma-separated addresses)
+                  </label>
                   <input
                     type="text"
                     value={topUsers}
@@ -366,7 +498,9 @@ const Stake = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-gray-300 text-sm font-medium mb-2 block">Rewards (comma-separated tCORE amounts)</label>
+                  <label className="text-gray-300 text-sm font-medium mb-2 block">
+                    Rewards (comma-separated tCORE amounts)
+                  </label>
                   <input
                     type="text"
                     value={rewards}
@@ -380,7 +514,12 @@ const Stake = () => {
                   <motion.button
                     onClick={handleStake}
                     className="px-6 py-3 bg-gradient-to-r from-[#ff9211] to-[#e0820f] text-[#0f0f0f] font-rubik font-semibold rounded-full shadow-lg hover:from-[#e0820f] hover:to-[#d17b0e] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={loading || !githubUsername || !amount || parseFloat(amount) < 0.01}
+                    disabled={
+                      loading ||
+                      !githubUsername ||
+                      !amount ||
+                      parseFloat(amount) < 0.01
+                    }
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -396,7 +535,11 @@ const Stake = () => {
                   <motion.button
                     onClick={handleUnstake}
                     className="px-6 py-3 bg-transparent text-[#ff9211] border-2 border-[#ff9211] font-rubik font-semibold rounded-full hover:bg-[#ff9211]/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={loading || !stakeDetails || parseFloat(stakeDetails.amount) <= 0}
+                    disabled={
+                      loading ||
+                      !stakeDetails ||
+                      parseFloat(stakeDetails.amount) <= 0
+                    }
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -432,7 +575,10 @@ const Stake = () => {
                     animate={{ opacity: 1 }}
                     className="mt-4 text-yellow-400 text-sm bg-[#ff9211]/10 p-3 rounded-lg"
                   >
-                    <p>⚠️ Penalty: {penaltyInfo.penalty} tCORE ({penaltyInfo.penaltyRate}%)</p>
+                    <p>
+                      ⚠️ Penalty: {penaltyInfo.penalty} tCORE (
+                      {penaltyInfo.penaltyRate}%)
+                    </p>
                     <p>Penalty-free in {penaltyInfo.daysLeft} day(s)</p>
                   </motion.div>
                 )}
@@ -447,10 +593,14 @@ const Stake = () => {
               className="lg:col-span-7 bg-[#1a1a1a]/80 backdrop-blur-md p-8 rounded-3xl shadow-xl border border-[#ff9211]/40 relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-tl from-[#ff9211]/10 to-[#e0820f]/10 opacity-50"></div>
-              <h2 className="text-3xl font-rubik font-bold text-[#ff9211] mb-6 relative z-10">Staking Dashboard</h2>
+              <h2 className="text-3xl font-rubik font-bold text-[#ff9211] mb-6 relative z-10">
+                Staking Dashboard
+              </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
                 <div className="bg-[#141414]/80 p-5 rounded-xl hover:bg-[#ff9211]/10 transition-all duration-300 group">
-                  <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors duration-300">Wallet Balance</p>
+                  <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors duration-300">
+                    Wallet Balance
+                  </p>
                   <div className="text-[#ff9211] text-lg font-semibold mt-2">
                     {COREBalance !== null ? (
                       <motion.div
@@ -466,7 +616,9 @@ const Stake = () => {
                   </div>
                 </div>
                 <div className="bg-[#141414]/80 p-5 rounded-xl hover:bg-[#ff9211]/10 transition-all duration-300 group">
-                  <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors duration-300">Staked Amount</p>
+                  <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors duration-300">
+                    Staked Amount
+                  </p>
                   <div className="text-[#ff9211] text-lg font-semibold mt-2">
                     {stakeDetails ? (
                       <motion.div
@@ -481,11 +633,15 @@ const Stake = () => {
                     )}
                   </div>
                   {stakeDetails?.githubUsername && (
-                    <p className="text-gray-500 text-xs mt-1">GitHub: {stakeDetails.githubUsername}</p>
+                    <p className="text-gray-500 text-xs mt-1">
+                      GitHub: {stakeDetails.githubUsername}
+                    </p>
                   )}
                 </div>
                 <div className="bg-[#141414]/80 p-5 rounded-xl hover:bg-[#ff9211]/10 transition-all duration-300 group">
-                  <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors duration-300">Total Staked</p>
+                  <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors duration-300">
+                    Total Staked
+                  </p>
                   <div className="text-[#ff9211] text-lg font-semibold mt-2">
                     {totalStaked !== null ? (
                       <motion.div
@@ -501,7 +657,9 @@ const Stake = () => {
                   </div>
                 </div>
                 <div className="bg-[#141414]/80 p-5 rounded-xl hover:bg-[#ff9211]/10 transition-all duration-300 group">
-                  <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors duration-300">Rewards Available</p>
+                  <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors duration-300">
+                    Rewards Available
+                  </p>
                   <div className="text-[#ff9211] text-lg font-semibold mt-2">
                     {weeklyRewards !== null ? (
                       <motion.div
@@ -517,7 +675,9 @@ const Stake = () => {
                   </div>
                 </div>
                 <div className="bg-[#141414]/80 p-5 rounded-xl hover:bg-[#ff9211]/10 transition-all duration-300 group">
-                  <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors duration-300">Yield Pool</p>
+                  <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors duration-300">
+                    Yield Pool
+                  </p>
                   <div className="text-[#ff9211] text-lg font-semibold mt-2">
                     {yieldPoolValue !== null ? (
                       <motion.div
@@ -544,27 +704,43 @@ const Stake = () => {
           className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10"
         >
           <div className="bg-[#1a1a1a]/80 backdrop-blur-md p-6 rounded-3xl shadow-xl border border-[#ff9211]/40">
-            <h3 className="text-xl font-rubik font-semibold text-[#ff9211] mb-4">Staking Benefits</h3>
+            <h3 className="text-xl font-rubik font-semibold text-[#ff9211] mb-4">
+              Staking Benefits
+            </h3>
             <ul className="text-gray-300 space-y-3 text-sm">
               <li className="flex items-center">
-                <span className="text-[#ff9211] mr-2">→</span> Earn rewards based on your contributions
+                <span className="text-[#ff9211] mr-2">→</span> Earn rewards
+                based on your contributions
               </li>
               <li className="flex items-center">
-                <span className="text-[#ff9211] mr-2">→</span> Support the CORE Testnet ecosystem
+                <span className="text-[#ff9211] mr-2">→</span> Support the CORE
+                Testnet ecosystem
               </li>
               <li className="flex items-center">
-                <span className="text-[#ff9211] mr-2">→</span> Flexible staking with a minimum of 0.01 tCORE
+                <span className="text-[#ff9211] mr-2">→</span> Flexible staking
+                with a minimum of 0.01 tCORE
               </li>
             </ul>
           </div>
           <div className="bg-[#1a1a1a]/80 backdrop-blur-md p-6 rounded-3xl shadow-xl border border-[#ff9211]/40">
-            <h3 className="text-xl font-rubik font-semibold text-[#ff9211] mb-4">Explore More</h3>
+            <h3 className="text-xl font-rubik font-semibold text-[#ff9211] mb-4">
+              Explore More
+            </h3>
             <div className="text-gray-300 space-y-3 text-sm">
               <p>
-                <a href="/dashboard" className="text-[#ff9211] hover:underline">Dashboard</a> - Track your progress
+                <a href="/dashboard" className="text-[#ff9211] hover:underline">
+                  Dashboard
+                </a>{" "}
+                - Track your progress
               </p>
               <p>
-                <a href="/leaderboard" className="text-[#ff9211] hover:underline">Leaderboard</a> - Compete with others
+                <a
+                  href="/leaderboard"
+                  className="text-[#ff9211] hover:underline"
+                >
+                  Leaderboard
+                </a>{" "}
+                - Compete with others
               </p>
               <p>Network: tCORE Testnet (Chain ID: 1114)</p>
             </div>
@@ -579,7 +755,10 @@ const Stake = () => {
         >
           <p>
             Questions?{" "}
-            <a href="mailto:dev.proof.reward@gmail.com" className="text-[#ff9211] hover:underline">
+            <a
+              href="mailto:dev.proof.reward@gmail.com"
+              className="text-[#ff9211] hover:underline"
+            >
               Reach out to support
             </a>
           </p>
@@ -592,27 +771,29 @@ const Stake = () => {
         </div>
       </div>
       {txInfo && (
-  <motion.div
-    initial={{ opacity: 0, y: -20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    className="fixed top-6 right-6 bg-[#1a1a1a] p-4 rounded-xl shadow-2xl border border-[#ff9211]/50 z-50"
-  >
-    <p className="text-gray-200 font-medium">{txInfo.message}</p>
-    {txInfo.hash ? (
-      <a
-        href={`https://scan.test2.btcs.network/tx/${txInfo.hash}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-[#ff9211] text-sm mt-2 block hover:underline"
-      >
-        Tx: {txInfo.hash.slice(0, 6)}...{txInfo.hash.slice(-4)}
-      </a>
-    ) : (
-      <p className="text-[#ff9211] text-sm mt-2">Transaction hash unavailable</p>
-    )}
-  </motion.div>
-)}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="fixed top-6 right-6 bg-[#1a1a1a] p-4 rounded-xl shadow-2xl border border-[#ff9211]/50 z-50"
+        >
+          <p className="text-gray-200 font-medium">{txInfo.message}</p>
+          {txInfo.hash ? (
+            <a
+              href={`https://scan.test2.btcs.network/tx/${txInfo.hash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#ff9211] text-sm mt-2 block hover:underline"
+            >
+              Tx: {txInfo.hash.slice(0, 6)}...{txInfo.hash.slice(-4)}
+            </a>
+          ) : (
+            <p className="text-[#ff9211] text-sm mt-2">
+              Transaction hash unavailable
+            </p>
+          )}
+        </motion.div>
+      )}
     </section>
   );
 };

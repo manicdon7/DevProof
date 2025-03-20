@@ -7,6 +7,6 @@ export function ProtectedRoute({ children }) {
 }
 
 export function ProtectedRouteSession({ children }) {
-  const isConnected = sessionStorage.getItem("connected") === "true";
+  const isConnected = sessionStorage.getItem("connected");
   return isConnected ? children : <Navigate to="/" replace />;
 }
