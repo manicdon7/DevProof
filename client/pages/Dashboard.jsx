@@ -32,6 +32,9 @@ export default function DashBoard() {
   const [watcher, setwatcher] = useState(0);
   const [specIssue, setSpecissue] = useState(null);
   const [star, setStar] = useState(null);
+
+  const {  setUsers } = useUserContext();
+
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [pr, setPr] = useState({ mergedPrCount: 0, totalPrCount: 0 });
   const [repos, setRepos] = useState({ Total: 0, repos: 0, Fork: 0, star: 0 });
@@ -86,6 +89,9 @@ export default function DashBoard() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      console.log("currentUser:",currentUser);
+      
+      sessionStorage.setItem("currentUser",currentUser.reloadUserInfo.screenName);
       setIsPopupOpen(!currentUser);
     });
 
