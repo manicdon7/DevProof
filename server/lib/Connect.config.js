@@ -2,22 +2,23 @@ const { MongoClient } = require("mongodb");
 require("dotenv").config();
 
 const Uri = process.env.AI_MODEL;
-
 const Client = new MongoClient(Uri);
-let isConnected = false;
+let db;
 
-module.exports = async function Connect() {
+(async () => {
   try {
-    if (!isConnected) {
-      await Client.connect();
-      isConnected = true;
-      console.log("Connected to MongoDB");
-    }
-    const db = Client.db("devProof");
-    const leaderboard = db.collection("Board");
-    return { leaderboard };
+    await Client.connect();
+    db = Client.db("devProof");
+    await db.collection("Board").createIndex({ wallet: 1 });
+    console.log("Connected to MongoDB");
   } catch (err) {
-    console.error("Database connection failed:", err);
-    throw new Error("invalid url provided");
+    console.error("MongoDB connection failed:", err);
   }
+})();
+
+module.exports = async function ConnectConfig() {
+  if (!db) {
+    throw new Error("Database not connected");
+  }
+  return { leaderboard: db.collection("Board") };
 };

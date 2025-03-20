@@ -20,6 +20,7 @@ import {
 } from "../src/Api/Github";
 import { useUserContext } from "../context";
 import githubService from "../src/services/githubServices";
+import axios from "axios";
 
 export default function DashBoard() {
   const { address } = useAccount();
@@ -34,26 +35,9 @@ export default function DashBoard() {
   const [star, setStar] = useState(null);
   const { Token } = useUserContext();
   const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [pr, setPr] = useState({
-    mergedPrCount: 0,
-    totalPrCount: 0,
-  });
-
-  useEffect(() => {
-    function sum() {
-      const score =
-        profitYield * 5 +
-        userData.followers * 2 +
-        commitStats?.totalCommits * 10 +
-        repos.star * 5 +
-        pr.mergedPrCount * 20 +
-        Issue.closed * 5 +
-        review * 7;
-
-      setTotalscore(score);
-    }
-    sum();
-  });
+  const [pr, setPr] = useState({ mergedPrCount: 0, totalPrCount: 0 });
+  const [repos, setRepos] = useState({ Total: 0, repos: 0, Fork: 0, star: 0 });
+  const [userData, setUserData] = useState("");
   const [review, setReview] = useState(null);
   const [forked, setForked] = useState(null);
   const [Issue, setIssue] = useState({
@@ -62,13 +46,66 @@ export default function DashBoard() {
     closed: 0,
     specialIssues: {},
   });
-  const [repos, setRepos] = useState({
-    Total: 0,
-    repos: 0,
-    Fork: 0,
-    star: 0,
+
+  const [dataStatus, setDataStatus] = useState({
+    profitYield: false,
+    userData: false,
+    commitStats: false,
+    repos: false,
+    pr: false,
+    Issue: false,
+    review: false,
   });
-  const [userData, setUserData] = useState("");
+
+  useEffect(() => {
+    const allDataReady = Object.values(dataStatus).every((status) => status);
+    if (allDataReady) {
+      const score =
+        (profitYield || 0) * 5 +
+        (userData?.followers || 0) * 2 +
+        (commitStats?.totalCommits || 0) * 10 +
+        (repos.star || 0) * 5 +
+        (pr.mergedPrCount || 0) * 20 +
+        (Issue.closed || 0) * 5 +
+        (review || 0) * 7;
+
+      setTotalscore(score);
+
+      if (user && address) {
+        pushToLeaderboard(address, user.displayName || "User", score);
+      }
+    }
+  }, [
+    dataStatus,
+    profitYield,
+    userData,
+    commitStats,
+    repos,
+    pr,
+    Issue,
+    review,
+    user,
+    address,
+  ]);
+
+  const pushToLeaderboard = async (wallet, name, score) => {
+    const dataObj = {
+      wallet: wallet,
+      username: name,
+      score: score,
+    };
+    const res = await axios.post(
+      "https://dev-proof-backend.vercel.app/api/leaderboard",
+      dataObj,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    console.log(res);
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -90,70 +127,66 @@ export default function DashBoard() {
   }, [auth]);
 
   useEffect(() => {
-    if (user) {
-      let token = null;
-      const fetchRepo = async () => {
-        try {
-          token = sessionStorage.getItem("oauthAccessToken");
-          const Key = sessionStorage.getItem("oauthAccessToken");
-          const repo = await fetchUserRepos(
+    if (!user) return;
+
+    let token = sessionStorage.getItem("oauthAccessToken");
+
+    const fetchRepo = async () => {
+      try {
+        const repo = await fetchUserRepos(
+          user.reloadUserInfo.screenName,
+          token
+        );
+        const data = {
+          Total: repo.Total,
+          repos: repo.reposlen,
+          Fork: repo.Fork,
+          star: repo.star,
+        };
+        setRepos(data);
+        setDataStatus((prev) => ({ ...prev, repos: true }));
+      } catch (error) {
+        console.error("Error fetching repos:", error);
+        setDataStatus((prev) => ({ ...prev, repos: true }));
+      }
+    };
+
+    const getLatest = async () => {
+      try {
+        if (user?.reloadUserInfo?.screenName) {
+          const latestUpdatedDate = await getLastUpdatedForAllRepositories(
             user.reloadUserInfo.screenName,
-            Key
+            token
           );
-          const data = {
-            Total: repo.Total,
-            repos: repo.reposlen,
-            Fork: repo.Fork,
-            star: repo.star,
-          };
-
-          setRepos(data);
-        } catch (error) {
-          console.error("Error fetching repos:", error);
-        }
-      };
-      fetchRepo();
-
-      const getLatest = async () => {
-        try {
-          if (user?.reloadUserInfo?.screenName) {
-            const userScreenName = user.reloadUserInfo.screenName;
-
-            getLastUpdatedForAllRepositories(userScreenName, token)
-              .then((latestUpdatedDate) => {
-                if (latestUpdatedDate) {
-                  const date = new Date(latestUpdatedDate);
-                  const formattedDate = date.toLocaleString();
-                  setLatest(formattedDate);
-                } else {
-                  console.log("No recent updates found.");
-                }
-              })
-              .catch((error) => {
-                console.error("Error fetching latest update date:", error);
-              });
+          if (latestUpdatedDate) {
+            const date = new Date(latestUpdatedDate);
+            setLatest(date.toLocaleString());
           }
-        } catch (error) {
-          console.error("Error in getLatest function:", error);
         }
-      };
+      } catch (error) {
+        console.error("Error fetching latest update date:", error);
+      }
+    };
 
-      getLatest();
-    }
+    fetchRepo();
+    getLatest();
   }, [user]);
 
   useEffect(() => {
-    let token = null;
+    if (!user) return;
+
+    let token = sessionStorage.getItem("oauthAccessToken");
+
     const fetchData = async () => {
       try {
-        token = sessionStorage.getItem("oauthAccessToken");
         const data = await fetchUserData(user.reloadUserInfo.screenName, token);
         setUserData(data);
+        setDataStatus((prev) => ({ ...prev, userData: true }));
       } catch (error) {
         console.error("Error fetching user data:", error);
+        setDataStatus((prev) => ({ ...prev, userData: true }));
       }
     };
-    fetchData();
 
     const fetchCommitStats = async () => {
       try {
@@ -163,8 +196,8 @@ export default function DashBoard() {
         );
         const commits = getCommitStats(events);
         const stats = calculateStats(commits, user.reloadUserInfo.screenName);
-
         setCommitStats(stats);
+        setDataStatus((prev) => ({ ...prev, commitStats: true }));
       } catch (error) {
         console.error("Error fetching user events:", error);
         setCommitStats({
@@ -174,186 +207,203 @@ export default function DashBoard() {
           largestCommit: 0,
           externalCommits: 0,
         });
+        setDataStatus((prev) => ({ ...prev, commitStats: true }));
       }
     };
-
-    fetchCommitStats();
 
     const fetchstarredRepos = async () => {
-      const stared = await fetchStarredRepos(
-        user?.reloadUserInfo?.screenName,
-        token
-      );
-
-      if (stared) {
-        setStar(stared);
+      try {
+        const stared = await fetchStarredRepos(
+          user.reloadUserInfo.screenName,
+          token
+        );
+        if (stared) setStar(stared);
+      } catch (error) {
+        console.error("Error fetching starred repos:", error);
       }
     };
-
-    fetchstarredRepos();
 
     const getForked = async () => {
-      if (user?.reloadUserInfo?.screenName) {
-        try {
-          const res = await getTotalForksForAllRepositories(
-            user.reloadUserInfo.screenName,
-            token
-          );
-
-          console.log(res);
-          setForked(res);
-        } catch (error) {
-          throw new Error(error);
-        }
+      try {
+        const res = await getTotalForksForAllRepositories(
+          user.reloadUserInfo.screenName,
+          token
+        );
+        setForked(res);
+      } catch (error) {
+        console.error("Error fetching forks:", error);
       }
     };
-
-    getForked();
 
     const fetchPr = async () => {
-      if (user?.reloadUserInfo?.screenName) {
-        try {
-          const res = await fetchUserPRs(user.reloadUserInfo.screenName, token);
-          if (res) {
-            setPr(res);
-          }
-        } catch (error) {
-          console.error("Error fetching PRs:", error);
+      try {
+        const res = await fetchUserPRs(user.reloadUserInfo.screenName, token);
+        if (res) {
+          setPr(res);
+          setDataStatus((prev) => ({ ...prev, pr: true }));
         }
+      } catch (error) {
+        console.error("Error fetching PRs:", error);
+        setDataStatus((prev) => ({ ...prev, pr: true }));
       }
     };
-
-    fetchPr();
 
     const issues = async () => {
-      if (user?.reloadUserInfo?.screenName) {
-        try {
-          const res = await fetchUserIssues(
-            user.reloadUserInfo.screenName,
-            token
-          );
-
-          if (res?.specialIssues?.length > 0) {
-            setIssue(res);
-            const resp = await IssueClassify(res.specialIssues);
-            setSpecissue(resp.priority);
-          } else {
-            console.warn("No special issues found.");
-          }
-        } catch (error) {
-          console.error("Error fetching issues:", error);
+      try {
+        const res = await fetchUserIssues(
+          user.reloadUserInfo.screenName,
+          token
+        );
+        if (res?.specialIssues?.length > 0) {
+          setIssue(res);
+          const resp = await IssueClassify(res.specialIssues);
+          setSpecissue(resp.priority);
         }
+        setDataStatus((prev) => ({ ...prev, Issue: true }));
+      } catch (error) {
+        console.error("Error fetching issues:", error);
+        setDataStatus((prev) => ({ ...prev, Issue: true }));
       }
     };
-
-    issues();
 
     const ai = async () => {
-      if (user?.reloadUserInfo?.screenName) {
-        try {
-          const service = githubService();
-          const repoNames = await service.repo(
+      try {
+        const service = githubService();
+
+        const allRepos = [];
+        let page = 1;
+        const perPage = 100;
+
+        while (true) {
+          const repos = await service.repo(
             user.reloadUserInfo.screenName,
-            token
+            token,
+            { page, per_page: perPage }
           );
-
-          if (!Array.isArray(repoNames) || repoNames.length === 0) {
-            console.log("No repositories found or invalid data.");
-            return;
-          }
-
-          let names = [];
-
-          for (const repoName of repoNames) {
-            const repoContent = await fetchRepoContents(
-              user.reloadUserInfo.screenName,
-              repoName,
-              token
-            );
-
-            if (repoContent) {
-              names.push({ repoName, content: repoContent });
-            }
-          }
-
-          const reposWithMdCount = names.map((repo) => ({
-            repoName: repo.repoName,
-            content: repo.content,
-            mdCount: repo.content.filter((file) => file.name.endsWith(".md"))
-              .length,
-          }));
-
-          const maxMdCount = Math.max(
-            ...reposWithMdCount.map((r) => r.mdCount)
-          );
-
-          const reposWithoutMaxMd = reposWithMdCount
-            .filter((r) => r.mdCount < maxMdCount)
-            .map((r) => ({ repoName: r.repoName, content: r.content }));
-
-          setProfitYield(reposWithoutMaxMd.length);
-        } catch (error) {
-          console.error("Error fetching repos:", error);
+          if (!Array.isArray(repos) || repos.length === 0) break;
+          allRepos.push(...repos);
+          if (repos.length < perPage) break;
+          page++;
         }
+
+        if (allRepos.length === 0) {
+          console.log("No repos found, setting profitYield to 0");
+          setProfitYield(0);
+          setDataStatus((prev) => ({ ...prev, profitYield: true }));
+          return;
+        }
+
+        console.log(`Fetched ${allRepos.length} repos`);
+
+        const batchSize = 20;
+        const repoContents = [];
+
+        for (let i = 0; i < allRepos.length; i += batchSize) {
+          const batch = allRepos.slice(i, i + batchSize);
+          const batchPromises = batch.map(async (repoName) => {
+            try {
+              const repoContent = await fetchRepoContents(
+                user.reloadUserInfo.screenName,
+                repoName,
+                token
+              );
+              return { repoName, content: repoContent || [] };
+            } catch (err) {
+              console.warn(
+                `Failed to fetch contents for ${repoName}: ${err.message}`
+              );
+              return { repoName, content: [] };
+            }
+          });
+
+          const batchResults = await Promise.all(batchPromises);
+          repoContents.push(...batchResults);
+          console.log(
+            `Processed batch ${i / batchSize + 1} of ${Math.ceil(
+              allRepos.length / batchSize
+            )}`
+          );
+        }
+
+        const reposWithMdCount = repoContents.map((repo) => ({
+          repoName: repo.repoName,
+          content: repo.content,
+          mdCount: repo.content.filter((file) =>
+            file.name?.toLowerCase().endsWith(".md")
+          ).length,
+        }));
+
+        const maxMdCount = Math.max(
+          ...reposWithMdCount.map((r) => r.mdCount),
+          0
+        );
+        const reposWithoutMaxMd = reposWithMdCount
+          .filter((r) => r.mdCount < maxMdCount)
+          .map((r) => ({ repoName: r.repoName, content: r.content }));
+
+        const profitYieldValue = reposWithoutMaxMd.length;
+        console.log(
+          `Profit Yield calculated: ${profitYieldValue} from ${allRepos.length} repos`
+        );
+
+        setProfitYield(profitYieldValue);
+        setDataStatus((prev) => ({ ...prev, profitYield: true }));
+      } catch (error) {
+        console.error("Critical error in ai function:", error);
+        setProfitYield(0);
+        setDataStatus((prev) => ({ ...prev, profitYield: true }));
       }
     };
-
-    ai();
 
     const getReviews = async () => {
       try {
-        if (user?.reloadUserInfo?.screenName) {
-          const res = await fetchAllReviews(
-            user.reloadUserInfo.screenName,
-            token
-          );
-          setReview(res.length);
-        }
+        const res = await fetchAllReviews(
+          user.reloadUserInfo.screenName,
+          token
+        );
+        setReview(res.length);
+        setDataStatus((prev) => ({ ...prev, review: true }));
       } catch (error) {
         console.error("Error in getReviews:", error);
+        setDataStatus((prev) => ({ ...prev, review: true }));
       }
     };
 
-    getReviews();
-
     const GetWatchers = async () => {
       try {
-        if (user?.reloadUserInfo?.screenName) {
-          const service = githubService();
-          const repoNames = await service.repo(
+        const service = githubService();
+        const repoNames = await service.repo(
+          user.reloadUserInfo.screenName,
+          token
+        );
+        if (!Array.isArray(repoNames) || repoNames.length === 0) return;
+
+        let watchersData = [];
+        for (const repoName of repoNames) {
+          const repoWatchers = await fetchRepoWatchers(
             user.reloadUserInfo.screenName,
+            repoName,
             token
           );
-
-          if (!Array.isArray(repoNames) || repoNames.length === 0) {
-            return;
-          }
-
-          let watchersData = [];
-
-          for (const repoName of repoNames) {
-            const repoWatchers = await fetchRepoWatchers(
-              user.reloadUserInfo.screenName,
-              repoName,
-              token
-            );
-
-            const watchersCount = repoWatchers?.watchers?.watchers_count;
-
-            if (watchersCount && watchersCount !== 0) {
-              watchersData.push({ repoName, watchers: repoWatchers });
-            }
-          }
-
-          if (watchersData.length > 0) {
-            setwatcher(watchersData);
+          const watchersCount = repoWatchers?.watchers?.watchers_count;
+          if (watchersCount && watchersCount !== 0) {
+            watchersData.push({ repoName, watchers: repoWatchers });
           }
         }
+        if (watchersData.length > 0) setwatcher(watchersData);
       } catch (error) {
         console.error("Error in GetWatchers:", error);
       }
     };
 
+    fetchData();
+    fetchCommitStats();
+    fetchstarredRepos();
+    getForked();
+    fetchPr();
+    issues();
+    ai();
+    getReviews();
     GetWatchers();
   }, [user]);
 

@@ -9,8 +9,8 @@ const {
 } = require("./utils/Templates");
 const analyzeGithubIssues = require("./utils/classify");
 const { getChatResponse } = require("./utils/coreMateUtils");
-const bodyParser = require('body-parser');
-const path = require('path');
+const bodyParser = require("body-parser");
+const path = require("path");
 const insertLeaderboardData = require("./utils/board");
 const ConnectConfig = require("./lib/Connect.config");
 
@@ -154,34 +154,32 @@ app.post("/api/coremate", async (req, res) => {
   try {
     const { message } = req.body;
 
-    if (!message || typeof message !== 'string') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Message is required and must be a string' 
+    if (!message || typeof message !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Message is required and must be a string",
       });
     }
-    
+
     const response = await getChatResponse(message);
-    
+
     return res.status(200).json({
       success: true,
-      data: response
+      data: response,
     });
   } catch (error) {
     console.error("Error in CoreMate chat:", error);
-    return res
-      .status(500)
-      .json({ 
-        success: false, 
-        message: "Failed to process CoreMate request", 
-        error: error.message 
-      });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to process CoreMate request",
+      error: error.message,
+    });
   }
 });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Server is running' });
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", message: "Server is running" });
 });
 
 // Error handling middleware
@@ -189,22 +187,29 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
     success: false,
-    message: 'Internal Server Error',
-    error: process.env.NODE_ENV === 'production' ? {} : err
+    message: "Internal Server Error",
+    error: process.env.NODE_ENV === "production" ? {} : err,
   });
-})
+});
 
 app.post("/api/leaderboard", async (req, res) => {
+  console.time("leaderboard-post");
   const { wallet, username, score } = req.body;
 
   if (!wallet || !username) {
+    console.timeEnd("leaderboard-post");
     return res.status(400).json({ error: "Wallet and username are required." });
   }
 
   try {
+    console.time("insertLeaderboardData");
     const result = await insertLeaderboardData(wallet, username, score);
+    console.timeEnd("insertLeaderboardData");
+    console.timeEnd("leaderboard-post");
     return res.status(201).json({ success: true, result });
   } catch (err) {
+    console.error("Leaderboard insert error:", err);
+    console.timeEnd("leaderboard-post");
     return res.status(500).json({
       error: "Error inserting leaderboard data",
       details: err.message,
