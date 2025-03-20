@@ -232,9 +232,13 @@ const Stake = () => {
         }
       }
   
-      const tx = await distributeTopContributors(stakingContract, isConnected, signer, provider, address, userArray, rewardArray);
-      const receipt = await tx.wait();
-      toast.success(`Distributed rewards to ${userArray.length} top contributors!`);
+      console.log("Distributing to:", userArray);
+      console.log("Rewards (wei):", rewardArray.map(r => r.toString()));
+  
+      const receipt = await distributeTopContributors(stakingContract, isConnected, signer, provider, address, userArray, rewardArray);
+      console.log("Transaction confirmed with hash:", receipt.transactionHash);
+  
+      toast.success(`Distributed rewards to ${userArray.length} top contributors! Transaction Hash: ${receipt.transactionHash}`);
       showTxInfo("Rewards Distributed", receipt.transactionHash);
       setRefreshTrigger((prev) => prev + 1);
       setTopUsers("");
@@ -587,6 +591,28 @@ const Stake = () => {
           <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-[#e0820f]/20 rounded-full blur-3xl animate-pulse opacity-30" />
         </div>
       </div>
+      {txInfo && (
+  <motion.div
+    initial={{ opacity: 0, y: -20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+    className="fixed top-6 right-6 bg-[#1a1a1a] p-4 rounded-xl shadow-2xl border border-[#ff9211]/50 z-50"
+  >
+    <p className="text-gray-200 font-medium">{txInfo.message}</p>
+    {txInfo.hash ? (
+      <a
+        href={`https://scan.test2.btcs.network/tx/${txInfo.hash}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[#ff9211] text-sm mt-2 block hover:underline"
+      >
+        Tx: {txInfo.hash.slice(0, 6)}...{txInfo.hash.slice(-4)}
+      </a>
+    ) : (
+      <p className="text-[#ff9211] text-sm mt-2">Transaction hash unavailable</p>
+    )}
+  </motion.div>
+)}
     </section>
   );
 };
