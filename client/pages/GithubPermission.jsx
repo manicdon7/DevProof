@@ -15,11 +15,14 @@ export function TermsAndConditions() {
       const provider = new GithubAuthProvider();
       toast.info("Initiating GitHub authentication...");
       const result = await signInWithPopup(auth, provider);
+      if (result && result.user) {
+        sessionStorage.setItem(
+          "oauthAccessToken",
+          result._tokenResponse.oauthAccessToken
+        );
+      }
       const githubUser = result.user;
       toast.success(`Welcome, ${githubUser.displayName || "Developer"}!`);
-
-      sessionStorage.setItem("connected", "true");
-
       Cookies.set("address", githubUser.uid);
 
       navigate("/dashboard");
