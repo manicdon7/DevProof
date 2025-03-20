@@ -188,7 +188,12 @@ export async function distributeTopContributors(contract, isConnected, signer, p
 
     const tx = await contract.connect(signer).distributeTopContributors(topUsers, rewards, { gasLimit: 1000000 });
     console.log("Transaction sent:", tx.hash);
+
     const receipt = await tx.wait();
+    console.log("Raw receipt:", receipt);
+    if (!receipt || !receipt.transactionHash) {
+      throw new Error("Invalid receipt: transactionHash missing");
+    }
     console.log("Transaction confirmed:", receipt.transactionHash);
     return receipt;
   } catch (error) {

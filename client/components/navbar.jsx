@@ -83,8 +83,6 @@ export function Navbar() {
             </a>
           ))}
         </nav>
-
-        {/* Right Section */}
         <div className="hidden lg:flex items-center space-x-6">
           <CustomConnectButton />
           {user && (
