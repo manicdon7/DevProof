@@ -17,7 +17,7 @@ export function HeroSection() {
         toast.dark("Connect Your Wallet", { autoClose: 2000 });
       } else {
         sessionStorage.setItem("connected", "true");
-        // navigate("/staketoken");
+        navigate("/staketoken");
       }
     } catch (error) {
       console.error("Navigation error:", error);
@@ -126,7 +126,54 @@ export function HeroSection() {
               variants={textVariants}
               className="text-[#ff9211] text-2xl sm:text-3xl lg:text-4xl"
             >
-              🚀
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 48 48"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="inline-block"
+              >
+                {/* Background (optional, matches #0f0f0f) */}
+                <rect width="48" height="48" fill="#0f0f0f" />
+
+                {/* Rocket Body with Gradient */}
+                <defs>
+                  <linearGradient id="rocketGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style={{ stopColor: "#ff9211", stopOpacity: 1 }} />
+                    <stop offset="100%" style={{ stopColor: "#e0820f", stopOpacity: 1 }} />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M24 4C24 4 28 12 28 16C28 20 24 24 24 24C24 24 20 20 20 16C20 12 24 4 24 4Z"
+                  fill="url(#rocketGradient)"
+                />
+
+                {/* Rocket Fins */}
+                <path
+                  d="M20 16L16 24C16 24 18 20 20 16Z"
+                  fill="url(#rocketGradient)"
+                />
+                <path
+                  d="M28 16L32 24C32 24 30 20 28 16Z"
+                  fill="url(#rocketGradient)"
+                />
+
+                {/* Exhaust Trail */}
+                <path
+                  d="M22 24C22 26 20 28 20 28C20 28 24 32 28 28C28 28 26 26 26 24H22Z"
+                  fill="#ff9211"
+                  opacity="0.8"
+                />
+                <path
+                  d="M23 28C23 30 21 32 21 32C21 32 24 34 27 32C27 32 25 30 25 28H23Z"
+                  fill="#e0820f"
+                  opacity="0.6"
+                />
+
+                {/* Glow Effect */}
+                <circle cx="24" cy="24" r="10" fill="#ff9211" opacity="0.2" filter="blur(5px)" />
+              </svg>
             </motion.span>
           </motion.h1>
           <motion.p
@@ -394,11 +441,9 @@ export function HeroSection() {
               {[0, 72, 144, 216, 288].map((angle, index) => (
                 <motion.path
                   key={`ai-scoring-${index}`}
-                  d={`M100,100 Q${
-                    100 + 30 * Math.cos(((angle - 20) * Math.PI) / 180)
-                  },${100 + 30 * Math.sin(((angle - 20) * Math.PI) / 180)} ${
-                    100 + 60 * Math.cos((angle * Math.PI) / 180)
-                  },${100 + 60 * Math.sin((angle * Math.PI) / 180)}`}
+                  d={`M100,100 Q${100 + 30 * Math.cos(((angle - 20) * Math.PI) / 180)
+                    },${100 + 30 * Math.sin(((angle - 20) * Math.PI) / 180)} ${100 + 60 * Math.cos((angle * Math.PI) / 180)
+                    },${100 + 60 * Math.sin((angle * Math.PI) / 180)}`}
                   stroke="#4a9eff"
                   strokeWidth="0.8"
                   fill="none"
@@ -488,8 +533,8 @@ export function HeroSection() {
                           row === col
                             ? "#00ffaa"
                             : Math.random() > 0.7
-                            ? "#4a9eff"
-                            : "#00ffaa",
+                              ? "#4a9eff"
+                              : "#00ffaa",
                       }}
                       transition={{
                         duration: 4,
