@@ -11,7 +11,6 @@ const analyzeGithubIssues = require("./utils/classify");
 const { getChatResponse } = require("./utils/coreMateUtils");
 const bodyParser = require("body-parser");
 const path = require("path");
-const insertLeaderboardData = require("./utils/board");
 const ConnectConfig = require("./lib/Connect.config");
 
 dotenv.config();
@@ -204,12 +203,20 @@ app.post("/api/leaderboard", async (req, res) => {
   try {
     const db = await ConnectConfig();
     const collection = db.leaderboard;
-    const result = await insertLeaderboardData(
-      collection,
+
+    // Insert leaderboard data
+    console.time("insertLeaderboardData");
+    const leaderboardData = {
       wallet,
       username,
-      score
-    );
+      score: score || 0,
+      timestamp: new Date(),
+    };
+
+    const result = await collection.insertOne(leaderboardData, {
+      maxTimeMS: 5000,
+    });
+
     console.timeEnd("insertLeaderboardData");
     console.timeEnd("leaderboard-post");
     return res.status(201).json({ success: true, result });
@@ -222,6 +229,7 @@ app.post("/api/leaderboard", async (req, res) => {
     });
   }
 });
+
 app.post("/api/leaderboard/score", async (req, res) => {
   const { wallet, username, score } = req.body;
   const db = await ConnectConfig();
