@@ -9,9 +9,9 @@ const StakingAbi = StakingArtifact.abi;
 const RewardAbi = RewardArtifact.abi;
 const YieldAbi = YieldArtifact.abi;
 
-const stakingContractAddress = "0x2Cef67B7caEE4BBB51EF853B14107DB0Bb9AeC45";
-const rewardContractAddress = "0xE0659a23565509c15f6880a927eBd2A5Bd91632A";
-const yieldContractAddress = "0xa558D2dF7c8a8BEd763D5C81C4e39d6EAA3C29bD";
+const stakingContractAddress = "0x7027CEBe8b8004a0cA0E0bbDdB4533B418CaAA59";
+const rewardContractAddress = "0xEFdEAA2Ae3B7c81cC93854CC9bfe78AecDCfE668";
+const yieldContractAddress = "0xbb9a09cB0E0bE4A5b5AD4B46b8C98c3461180Eb8";
 
 const EXPECTED_CHAIN_ID = 1114;
 
@@ -76,13 +76,17 @@ export function useContracts() {
 
       const currentChainId = walletClient.chain?.id;
       if (currentChainId !== EXPECTED_CHAIN_ID) {
-        setContractState((prev) => ({
-          ...prev,
-          isConnected: true,
-          isLoading: false,
-          error: `Please switch to tCORE testnet (Chain ID: ${EXPECTED_CHAIN_ID}). Current chain: ${currentChainId}`,
-        }));
-        return;
+        try {
+          await walletClient.switchChain(EXPECTED_CHAIN_ID);
+        } catch (error) {
+          setContractState((prev) => ({
+            ...prev,
+            isConnected: true,
+            isLoading: false,
+            error: `Switch to tCORE testnet (Chain ID: ${EXPECTED_CHAIN_ID}).`,
+          }));
+          return;
+        }
       }
 
       try {
@@ -128,16 +132,6 @@ export function useContracts() {
     initializeContracts();
   }, [address, isConnected, walletClient, walletClientLoading, walletClientError]);
 
-  console.log("useContracts state:", {
-    isConnected: contractState.isConnected,
-    isLoading: contractState.isLoading,
-    error: contractState.error,
-    hasProvider: !!contractState.provider,
-    hasSigner: !!contractState.signer,
-    stakingContract: !!contractState.stakingContract,
-    address,
-  });
-
   return contractState;
 }
 
@@ -149,13 +143,13 @@ function ensureContractReady(contract, isConnected, signer, provider, address, r
   if (requiresSigner && (!address || !ethers.isAddress(address))) throw new Error("Invalid or missing address.");
 }
 
-export async function stakeTokens(contract, amount, isConnected, signer, provider, fallbackAddress) {
-  ensureContractReady(contract, isConnected, signer, provider, fallbackAddress);
+export async function stakeTokens(contract, githubUsername, isConnected, signer, provider, address, options = {}) {
+  ensureContractReady(contract, isConnected, signer, provider, address);
   try {
-    const stakeAmount = ethers.parseEther(amount);
-    const balance = await provider.getBalance(fallbackAddress);
-    if (balance < stakeAmount) throw new Error("Insufficient tCORE balance.");
-    const tx = await contract.stake({ value: stakeAmount, gasLimit: 500000 });
+    const tx = await contract.stake(githubUsername, { 
+      value: options.value || ethers.parseEther("0.01"), 
+      gasLimit: 500000 
+    });
     const receipt = await tx.wait();
     return receipt;
   } catch (error) {
@@ -164,28 +158,42 @@ export async function stakeTokens(contract, amount, isConnected, signer, provide
   }
 }
 
-export async function unstakeTokens(contract, amount, isConnected, signer, provider) {
-  ensureContractReady(contract, isConnected, signer, provider, await signer.getAddress());
+export async function unstakeTokens(contract, isConnected, signer, provider, address, amount) {
+  if (!contract || !isConnected || !signer || !provider || !address || !amount) {
+    throw new Error("Invalid parameters: Ensure contract, connection, signer, provider, address, and amount are provided.");
+  }
+
   try {
-    const stakeAmount = ethers.parseEther(amount);
-    const tx = await contract.unstake(stakeAmount, { gasLimit: 500000 });
+    const tx = await contract.connect(signer).unstake(amount, { gasLimit: 500000 });
     const receipt = await tx.wait();
     return receipt;
   } catch (error) {
-    console.error("Unstake error:", error);
-    throw error;
+    console.error("Unstaking failed:", error);
+    throw new Error(`Unstaking failed: ${error.message || error}`);
   }
 }
 
-export async function claimRewards(contract, isConnected, signer, provider) {
-  ensureContractReady(contract, isConnected, signer, provider, await signer.getAddress());
+export async function distributeTopContributors(contract, isConnected, signer, provider, address, topUsers, rewards) {
+  if (!contract || !isConnected || !signer || !provider || !address || !topUsers || !rewards) {
+    throw new Error("Invalid parameters: Ensure all required parameters are provided.");
+  }
+  if (topUsers.length !== rewards.length) {
+    throw new Error("Mismatched arrays: topUsers and rewards must have the same length.");
+  }
+
   try {
-    const tx = await contract.claimReward();
+    console.log("Distributing to:", topUsers);
+    console.log("Rewards (wei):", rewards.map(r => r.toString()));
+    console.log("Yield Pool address:", await contract.yieldPool());
+
+    const tx = await contract.connect(signer).distributeTopContributors(topUsers, rewards, { gasLimit: 1000000 });
+    console.log("Transaction sent:", tx.hash);
     const receipt = await tx.wait();
+    console.log("Transaction confirmed:", receipt.transactionHash);
     return receipt;
   } catch (error) {
-    console.error("Claim rewards error:", error);
-    throw error;
+    console.error("Distribute top contributors error:", error);
+    throw new Error(`Distribution failed: ${error.message || error}`);
   }
 }
 
@@ -194,8 +202,9 @@ export async function getUserStake(contract, userAddress, isConnected, provider)
   try {
     const userStake = await contract.stakes(userAddress);
     return {
-      amount: userStake.amount,
-      lastStakedTime: userStake.lastStakedTime,
+      amount: ethers.formatEther(userStake.amount),
+      lastStakedTime: userStake.lastStakedTime.toString(),
+      githubUsername: userStake.githubUsername,
     };
   } catch (error) {
     console.error("Get user stake error:", error);
@@ -203,30 +212,21 @@ export async function getUserStake(contract, userAddress, isConnected, provider)
   }
 }
 
-    export async function getTotalStaked(contract, isConnected, provider, address) {
-      ensureContractReady(contract, isConnected, null, provider, address, false);
-      try {
-        const totalStaked = await contract.getTotalStaked();
-        return ethers.formatEther(totalStaked);
-      } catch (error) {
-        console.error("Get total staked error:", error);
-        throw error;
-      }
-    }
-
-export async function getRewardBalance(rewardContractRead, userAddress, isConnected, provider) {
-  ensureContractReady(rewardContractRead, isConnected, null, provider, userAddress, false);
+export async function getTotalStaked(contract, isConnected, provider, address) {
+  ensureContractReady(contract, isConnected, null, provider, address, false);
   try {
-    // Adjust this based on your RewardDistribution contract's method
-    let rewards;
-    try {
-      // Assuming 'pendingRewards' might be the correct method; adjust per ABI
-      rewards = await rewardContractRead.pendingRewards(userAddress);
-    } catch (e) {
-      console.warn("pendingRewards not found, falling back to balance:", e);
-      // Fallback: Check contract balance (not ideal, adjust as needed)
-      rewards = await provider.getBalance(rewardContractAddress);
-    }
+    const totalStaked = await contract.getTotalStaked();
+    return ethers.formatEther(totalStaked);
+  } catch (error) {
+    console.error("Get total staked error:", error);
+    throw error;
+  }
+}
+
+export async function getRewardBalance(rewardContractRead, isConnected, provider) {
+  ensureContractReady(rewardContractRead, isConnected, null, provider, rewardContractAddress, false);
+  try {
+    const rewards = await rewardContractRead.getRewardBalance();
     return ethers.formatEther(rewards);
   } catch (error) {
     console.error("Get reward balance error:", error);
