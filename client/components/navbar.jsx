@@ -64,10 +64,10 @@ export function Navbar() {
             Stake
           </a>
           <a
-            href="#"
+            href="/leaderboard"
             className="text-white hover:text-[#ff9211] transition-colors duration-300 font-lexend font-medium tracking-wide"
           >
-            Contact
+            Leaderboard
           </a>
         </nav>
 
@@ -154,10 +154,10 @@ export function Navbar() {
           Stake
         </a>
         <a
-          href="#"
+          href="/leaderboard"
           className="text-white hover:text-[#ff9211] transition-colors duration-300 font-lexend font-medium w-full text-center py-2 hover:bg-[#1a1a1a] rounded-md"
         >
-          Contact
+          Leaderboard
         </a>
         <div className="flex flex-col items-center space-y-4 w-full">
           <CustomConnectButton /> {/* Added Connect Button for mobile */}
