@@ -198,6 +198,7 @@ const Stake = () => {
       const storedData = sessionStorage.getItem("dataStore");
 
       if (storedData) {
+        sessionStorage.setItem("stake", true);
         const response = JSON.parse(storedData);
 
         try {
@@ -212,6 +213,7 @@ const Stake = () => {
 
           if (res.data) {
             navigate("/leaderboard");
+            window.location.reload();
           }
         } catch (error) {
           console.error("Error submitting leaderboard:", error);
