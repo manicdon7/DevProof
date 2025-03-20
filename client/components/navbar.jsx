@@ -73,7 +73,7 @@ export function Navbar() {
 
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex space-x-8">
-          {["Home", "Dashboard", "Stake", "Leaderboard"].map((item) => (
+          {["Home", "Dashboard", "Stake", "Leaderboard", "Bounty"].map((item) => (
             <a
               key={item}
               href={`/${item.toLowerCase()}`}
