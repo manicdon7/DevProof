@@ -19,40 +19,6 @@ export function Navbar() {
     return () => unsubscribe();
   }, [auth]);
 
-  // const sendRegistrationEmail = async (email, name) => {
-  //   try {
-  //     const response = await fetch(
-  //       "http://localhost:5000/api/send-registration-email",
-  //       {
-  //         method: "POST",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //         },
-  //         body: JSON.stringify({ email, name }),
-  //       }
-  //     );
-
-  //     const data = await response.json();
-
-  //     if (response.ok) {
-  //       console.log("Email sent successfully:", data);
-  //     } else {
-  //       console.error("Error sending email:", data.message);
-  //     }
-  //   } catch (error) {
-  //     console.error("Request failed:", error);
-  //   }
-  // };
-  // useEffect(() => {
-  //   if (user) {
-  //     const email = user.email;
-  //     const name = user.displayName;
-  //     if (email && name) {
-  //       sendRegistrationEmail(email, name);
-  //     }
-  //   }
-  // }, [user]);
-
   const handleLogout = async () => {
     await signOut(auth);
     Cookies.remove("address");
@@ -73,7 +39,7 @@ export function Navbar() {
             alt="DevProof Logo"
             className="w-10 h-10"
           />
-          <span className=" bg-gradient-to-r from-[#ff9211] to-[#e0820f] bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-[#ff9211] to-[#e0820f] bg-clip-text text-transparent">
             DevProof
           </span>
         </a>
@@ -147,11 +113,20 @@ export function Navbar() {
           className="p-2 lg:hidden focus:outline-none focus:ring-2 focus:ring-[#ff9211] rounded-md"
           onClick={() => setIsOpen(!isOpen)}
         >
-          <img
-            src="https://res.cloudinary.com/dvgpzftnf/image/upload/v1742374889/eagle-logo_smlzzj.jpg"
-            alt="DevProof Logo"
-            className="w-10 h-10"
-          />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            className="w-6 h-6 text-[#ff9211]"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
         </button>
       </div>
 
@@ -184,12 +159,13 @@ export function Navbar() {
         >
           Contact
         </a>
-        <div className="flex flex-col space-y-4 w-full">
+        <div className="flex flex-col items-center space-y-4 w-full">
+          <CustomConnectButton /> {/* Added Connect Button for mobile */}
           {user && (
             <div className="relative">
               <motion.button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#ff9211]/50 hover:border-[#ff9211] transition-all duration-300 mx-auto focus:outline-none"
+                className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#ff9211]/50 hover:border-[#ff9211] transition-all duration-300 focus:outline-none"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
               >
