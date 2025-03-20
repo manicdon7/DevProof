@@ -202,8 +202,14 @@ app.post("/api/leaderboard", async (req, res) => {
   }
 
   try {
-    console.time("insertLeaderboardData");
-    const result = await insertLeaderboardData(wallet, username, score);
+    const db = await ConnectConfig();
+    const collection = db.leaderboard;
+    const result = await insertLeaderboardData(
+      collection,
+      wallet,
+      username,
+      score
+    );
     console.timeEnd("insertLeaderboardData");
     console.timeEnd("leaderboard-post");
     return res.status(201).json({ success: true, result });
@@ -216,7 +222,6 @@ app.post("/api/leaderboard", async (req, res) => {
     });
   }
 });
-
 app.post("/api/leaderboard/score", async (req, res) => {
   const { wallet, username, score } = req.body;
   const db = await ConnectConfig();
