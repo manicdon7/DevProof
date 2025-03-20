@@ -47,7 +47,6 @@ export function TermsAndConditions() {
         <h1 className="text-3xl font-bold text-[#ff9211] mb-6 text-center font-rubik">
           Terms & Conditions
         </h1>
-
         <div className="text-gray-300 text-sm space-y-4 mb-8 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-[#ff9211] scrollbar-track-[#0f0f0f]">
           <p>
             Welcome to DevProof! By signing in, you agree to the following
@@ -86,7 +85,6 @@ export function TermsAndConditions() {
             .
           </p>
         </div>
-
         <div className="flex items-center gap-3 mb-6">
           <input
             type="checkbox"
@@ -102,7 +100,6 @@ export function TermsAndConditions() {
             I agree to the Terms & Conditions
           </label>
         </div>
-
         <motion.button
           onClick={handleGithubSignIn}
           disabled={!agreed}

@@ -18,7 +18,6 @@ import {
   getTotalForksForAllRepositories,
   IssueClassify,
 } from "../src/Api/Github";
-import { useUserContext } from "../context";
 import githubService from "../src/services/githubServices";
 import axios from "axios";
 
@@ -33,7 +32,9 @@ export default function DashBoard() {
   const [watcher, setwatcher] = useState(0);
   const [specIssue, setSpecissue] = useState(null);
   const [star, setStar] = useState(null);
+
   const {  setUsers } = useUserContext();
+
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [pr, setPr] = useState({ mergedPrCount: 0, totalPrCount: 0 });
   const [repos, setRepos] = useState({ Total: 0, repos: 0, Fork: 0, star: 0 });
@@ -70,10 +71,7 @@ export default function DashBoard() {
         (review || 0) * 7;
 
       setTotalscore(score);
-
-      if (user && address) {
-        pushToLeaderboard(address, user.displayName || "User", score);
-      }
+      
     }
   }, [
     dataStatus,
@@ -87,25 +85,6 @@ export default function DashBoard() {
     user,
     address,
   ]);
-
-  const pushToLeaderboard = async (wallet, name, score) => {
-    const dataObj = {
-      wallet: wallet,
-      username: name,
-      score: score,
-    };
-    const res = await axios.post(
-      "https://dev-proof-backend.vercel.app/api/leaderboard",
-      dataObj,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    console.log(res);
-  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
