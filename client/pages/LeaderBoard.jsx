@@ -12,6 +12,7 @@ const LeaderBoard = () => {
         const response = await axios.get(
           "https://dev-proof-backend.vercel.app/api/top-users"
         );
+        console.log(response.data);
 
         if (response?.data?.success) {
           setLeaderboardData(response.data.users);
