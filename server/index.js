@@ -25,7 +25,6 @@ const allowedOrigins = [
 const corsOptions = {
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -50,6 +49,7 @@ app.get("/", (req, res) => {
   res.status(200).json(serverStatus);
 });
 
+// Existing email routes...
 app.post("/api/send-registration-email", async (req, res) => {
   try {
     const { email, name } = req.body;
@@ -74,7 +74,6 @@ app.post("/api/send-registration-email", async (req, res) => {
   }
 });
 
-// Route for sending top contributor emails
 app.post("/api/send-top-contributor-email", async (req, res) => {
   try {
     const { email, name } = req.body;
@@ -100,7 +99,6 @@ app.post("/api/send-top-contributor-email", async (req, res) => {
   }
 });
 
-// Route for sending onboarding emails
 app.post("/api/send-onboarding-email", async (req, res) => {
   try {
     const { email, name, githubUsername } = req.body;
@@ -126,6 +124,46 @@ app.post("/api/send-onboarding-email", async (req, res) => {
   }
 });
 
+app.get("/api/checkUser", async (req, res) => {
+  const { username } = req.query;
+
+  if (!username) {
+    return res.status(400).json({
+      success: false,
+      message: "Username query parameter is required",
+    });
+  }
+
+  try {
+    const dbConfig = await ConnectConfig();
+    const collection = dbConfig.leaderboard;
+
+    const user = await collection.findOne({ username });
+
+    if (user) {
+      return res.status(200).json({
+        success: true,
+        isConnected: true,
+        message: `User ${username} found in the database`,
+      });
+    } else {
+      return res.status(200).json({
+        success: true,
+        isConnected: false,
+        message: `User ${username} not found in the database`,
+      });
+    }
+  } catch (error) {
+    console.error("Error in /api/checkUser:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to check user - database connection issue",
+      error: error.message,
+    });
+  }
+});
+
+// Existing routes...
 app.post("/api/classify/v1", async (req, res) => {
   try {
     const { issues } = req.body;
@@ -178,15 +216,6 @@ app.post("/api/coremate", async (req, res) => {
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Server is running" });
-});
-
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    message: "Internal Server Error",
-    error: process.env.NODE_ENV === "production" ? {} : err,
-  });
 });
 
 app.post("/api/leaderboard", async (req, res) => {
@@ -294,6 +323,15 @@ app.post("/api/leaderboard/score", async (req, res) => {
       message: "Internal Server Error",
     });
   }
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    success: false,
+    message: "Internal Server Error",
+    error: process.env.NODE_ENV === "production" ? {} : err,
+  });
 });
 
 app.listen(port, () => {

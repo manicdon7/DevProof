@@ -2,20 +2,22 @@ const { MongoClient } = require("mongodb");
 require("dotenv").config();
 
 const Uri = process.env.AI_MODEL;
-const Client = new MongoClient(Uri);
+const Client = new MongoClient(Uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 let db;
 let connectionPromise;
 
-// Create a function that returns a promise for the connection
 async function connect() {
   if (connectionPromise) return connectionPromise;
 
   connectionPromise = new Promise(async (resolve, reject) => {
     try {
-      console.log(
-        "Connecting to MongoDB with URI:",
-        Uri ? "URI exists" : "URI is missing"
-      );
+      if (!Uri) {
+        throw new Error("MONGODB_URI environment variable is not set");
+      }
+      console.log("Connecting to MongoDB with URI:", Uri.slice(0, 20) + "..."); // Log partial URI for security
       await Client.connect();
       db = Client.db("devProof");
       await db.collection("Board").createIndex({ wallet: 1 });
@@ -30,6 +32,7 @@ async function connect() {
   return connectionPromise;
 }
 
+// Initial connection attempt
 connect().catch((err) =>
   console.error("Initial connection attempt failed:", err)
 );
@@ -39,8 +42,13 @@ module.exports = async function ConnectConfig() {
     try {
       await connect();
     } catch (err) {
-      throw new Error(`Database not connected: ${err.message}`);
+      throw new Error(`Database connection failed: ${err.message}`);
     }
+  }
+  if (!db) {
+    throw new Error(
+      "Database object is still undefined after connection attempt"
+    );
   }
   return { leaderboard: db.collection("Board") };
 };
