@@ -11,7 +11,6 @@ const analyzeGithubIssues = require("./utils/classify");
 const { getChatResponse } = require("./utils/coreMateUtils");
 const bodyParser = require("body-parser");
 const path = require("path");
-const insertLeaderboardData = require("./utils/board");
 const ConnectConfig = require("./lib/Connect.config");
 
 dotenv.config();
@@ -26,7 +25,6 @@ const allowedOrigins = [
 const corsOptions = {
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -51,6 +49,7 @@ app.get("/", (req, res) => {
   res.status(200).json(serverStatus);
 });
 
+// Existing email routes...
 app.post("/api/send-registration-email", async (req, res) => {
   try {
     const { email, name } = req.body;
@@ -75,7 +74,6 @@ app.post("/api/send-registration-email", async (req, res) => {
   }
 });
 
-// Route for sending top contributor emails
 app.post("/api/send-top-contributor-email", async (req, res) => {
   try {
     const { email, name } = req.body;
@@ -101,7 +99,6 @@ app.post("/api/send-top-contributor-email", async (req, res) => {
   }
 });
 
-// Route for sending onboarding emails
 app.post("/api/send-onboarding-email", async (req, res) => {
   try {
     const { email, name, githubUsername } = req.body;
@@ -127,6 +124,46 @@ app.post("/api/send-onboarding-email", async (req, res) => {
   }
 });
 
+app.get("/api/checkUser", async (req, res) => {
+  const { username } = req.query;
+
+  if (!username) {
+    return res.status(400).json({
+      success: false,
+      message: "Username query parameter is required",
+    });
+  }
+
+  try {
+    const dbConfig = await ConnectConfig();
+    const collection = dbConfig.leaderboard;
+
+    const user = await collection.findOne({ username });
+
+    if (user) {
+      return res.status(200).json({
+        success: true,
+        isConnected: true,
+        message: `User ${username} found in the database`,
+      });
+    } else {
+      return res.status(200).json({
+        success: true,
+        isConnected: false,
+        message: `User ${username} not found in the database`,
+      });
+    }
+  } catch (error) {
+    console.error("Error in /api/checkUser:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to check user - database connection issue",
+      error: error.message,
+    });
+  }
+});
+
+// Existing routes...
 app.post("/api/classify/v1", async (req, res) => {
   try {
     const { issues } = req.body;
@@ -177,19 +214,8 @@ app.post("/api/coremate", async (req, res) => {
   }
 });
 
-// Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Server is running" });
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    message: "Internal Server Error",
-    error: process.env.NODE_ENV === "production" ? {} : err,
-  });
 });
 
 app.post("/api/leaderboard", async (req, res) => {
@@ -202,8 +228,31 @@ app.post("/api/leaderboard", async (req, res) => {
   }
 
   try {
+    const db = await ConnectConfig();
+    const collection = db.leaderboard;
+
+    const existingRecord = await collection.findOne({ wallet });
+
+    if (existingRecord) {
+      console.timeEnd("leaderboard-post");
+      return res.status(200).json({
+        success: true,
+        result: existingRecord,
+      });
+    }
+
     console.time("insertLeaderboardData");
-    const result = await insertLeaderboardData(wallet, username, score);
+    const leaderboardData = {
+      wallet,
+      username,
+      score: score || 0,
+      timestamp: new Date(),
+    };
+
+    const result = await collection.insertOne(leaderboardData, {
+      maxTimeMS: 5000,
+    });
+
     console.timeEnd("insertLeaderboardData");
     console.timeEnd("leaderboard-post");
     return res.status(201).json({ success: true, result });
@@ -214,6 +263,29 @@ app.post("/api/leaderboard", async (req, res) => {
       error: "Error inserting leaderboard data",
       details: err.message,
     });
+  }
+});
+
+app.get("/api/top-users", async (req, res) => {
+  try {
+    const db = await ConnectConfig();
+    const collection = db.leaderboard;
+
+    const allUsers = await collection
+      .find()
+      .sort({ score: -1 })
+      .project({ wallet: 1, username: 1, score: 1, _id: 0 })
+      .toArray();
+
+    const top5Users = allUsers.slice(0, 5);
+
+    console.log("All Users:", allUsers);
+    console.log("Top 5 Users:", top5Users);
+
+    res.json({ success: true, users: allUsers, top5: top5Users });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
 
@@ -251,6 +323,15 @@ app.post("/api/leaderboard/score", async (req, res) => {
       message: "Internal Server Error",
     });
   }
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    success: false,
+    message: "Internal Server Error",
+    error: process.env.NODE_ENV === "production" ? {} : err,
+  });
 });
 
 app.listen(port, () => {
