@@ -1,6 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const mongoose = require("mongoose");
 const sendEmail = require("./utils/SendEmail");
 const {
   registrationEmailTemplate,
@@ -9,14 +10,14 @@ const {
 } = require("./utils/Templates");
 const analyzeGithubIssues = require("./utils/classify");
 const { getChatResponse } = require("./utils/coreMateUtils");
-const bodyParser = require("body-parser");
-const path = require("path");
-const ConnectConfig = require("./lib/Connect.config");
+const Board = require("./lib/schema/index"); // Import the Board model
+const Bounty = require("./lib/schema/Bounty");
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
+
 const allowedOrigins = [
   "https://dev-proof.vercel.app",
   "http://localhost:3000",
@@ -25,7 +26,7 @@ const allowedOrigins = [
 const corsOptions = {
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
@@ -38,18 +39,23 @@ const corsOptions = {
 app.use(cors(corsOptions));
 const port = process.env.PORT || 5000;
 
+// MongoDB Connection
+mongoose
+  .connect(process.env.URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => console.error("Error connecting to MongoDB:", err.message));
+
+// Root Route
 app.get("/", (req, res) => {
-  const serverStatus = {
+  res.status(200).json({
     status: "Server is running smoothly 🚀",
     uptime: process.uptime(),
-    timestamp: new Date().toLocaleString(),
-    message:
-      "Welcome to the DevProof API — Rewarding Open Source Excellence on Core Blockchain! 🎉",
-  };
-  res.status(200).json(serverStatus);
+    timestamp: new Date().toISOString(),
+    message: "Welcome to the DevProof API 🎉",
+  });
 });
 
-// Existing email routes...
+// Email Routes
 app.post("/api/send-registration-email", async (req, res) => {
   try {
     const { email, name } = req.body;
@@ -124,6 +130,7 @@ app.post("/api/send-onboarding-email", async (req, res) => {
   }
 });
 
+// Check User Route (Corrected - Removed ConnectConfig)
 app.get("/api/checkUser", async (req, res) => {
   const { username } = req.query;
 
@@ -135,10 +142,7 @@ app.get("/api/checkUser", async (req, res) => {
   }
 
   try {
-    const dbConfig = await ConnectConfig();
-    const collection = dbConfig.leaderboard;
-
-    const user = await collection.findOne({ username });
+    const user = await Board.findOne({ username });
 
     if (user) {
       return res.status(200).json({
@@ -163,7 +167,7 @@ app.get("/api/checkUser", async (req, res) => {
   }
 });
 
-// Existing routes...
+// Classify Issues Route
 app.post("/api/classify/v1", async (req, res) => {
   try {
     const { issues } = req.body;
@@ -187,6 +191,7 @@ app.post("/api/classify/v1", async (req, res) => {
   }
 });
 
+// CoreMate Chat Route
 app.post("/api/coremate", async (req, res) => {
   try {
     const { message } = req.body;
@@ -214,86 +219,44 @@ app.post("/api/coremate", async (req, res) => {
   }
 });
 
+// Health Check Route
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Server is running" });
 });
 
+// Leaderboard Routes
 app.post("/api/leaderboard", async (req, res) => {
-  console.time("leaderboard-post");
-  const { wallet, username, score } = req.body;
-
-  if (!wallet || !username) {
-    console.timeEnd("leaderboard-post");
-    return res.status(400).json({ error: "Wallet and username are required." });
-  }
-
   try {
-    const db = await ConnectConfig();
-    const collection = db.leaderboard;
-
-    const existingRecord = await collection.findOne({ wallet });
-
-    if (existingRecord) {
-      if (existingRecord.score !== score) {
-        console.time("updateLeaderboardData");
-        const updateResult = await collection.updateOne(
-          { wallet },
-          { $set: { score, timestamp: new Date() } }
-        );
-        console.timeEnd("updateLeaderboardData");
-        console.timeEnd("leaderboard-post");
-        return res
-          .status(200)
-          .json({ success: true, updated: true, result: updateResult });
-      }
-      console.timeEnd("leaderboard-post");
-      return res
-        .status(200)
-        .json({ success: true, updated: false, result: existingRecord });
+    const { wallet, username, score } = req.body;
+    if (!wallet || !username) {
+      return res.status(400).json({ error: "Wallet and username are required." });
     }
 
-    console.time("insertLeaderboardData");
-    const leaderboardData = {
-      wallet,
-      username,
-      score: score || 0,
-      timestamp: new Date(),
-    };
+    let user = await Board.findOne({ wallet });
+    if (!user) {
+      user = new Board({ wallet, username, score: score || 0 });
+      await user.save();
+    } else {
+      // Update existing user if needed (optional)
+      user.score = score || user.score;
+      await user.save();
+    }
 
-    const result = await collection.insertOne(leaderboardData, {
-      maxTimeMS: 5000,
-    });
-
-    console.timeEnd("insertLeaderboardData");
-    console.timeEnd("leaderboard-post");
-    return res.status(201).json({ success: true, result });
+    res.status(200).json({ success: true, result: user });
   } catch (err) {
     console.error("Leaderboard insert error:", err);
-    console.timeEnd("leaderboard-post");
-    return res.status(500).json({
-      error: "Error inserting/updating leaderboard data",
-      details: err.message,
-    });
+    res.status(500).json({ error: "Error inserting leaderboard data", details: err.message });
   }
 });
 
 app.get("/api/top-users", async (req, res) => {
   try {
-    const db = await ConnectConfig();
-    const collection = db.leaderboard;
+    const users = await Board.find()
+      .sort({ score: -1 }) // Sort by score descending
+      .select("wallet username score -_id") // Select only needed fields, exclude _id
+      .limit(10); // Limit to top 10 users (adjust as needed)
 
-    const allUsers = await collection
-      .find()
-      .sort({ score: -1 })
-      .project({ wallet: 1, username: 1, score: 1, _id: 0 })
-      .toArray();
-
-    const top5Users = allUsers.slice(0, 5);
-
-    console.log("All Users:", allUsers);
-    console.log("Top 5 Users:", top5Users);
-
-    res.json({ success: true, users: allUsers, top5: top5Users });
+    res.json({ success: true, users, top5: users.slice(0, 5) });
   } catch (error) {
     console.error("Error fetching users:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -301,50 +264,58 @@ app.get("/api/top-users", async (req, res) => {
 });
 
 app.post("/api/leaderboard/score", async (req, res) => {
-  const { wallet, username, score } = req.body;
-  const db = await ConnectConfig();
-  const collection = db.leaderboard;
-
-  if (!wallet || !username || score === undefined) {
-    return res.status(400).json({
-      message: "Wallet, username, and score are required.",
-    });
-  }
-
   try {
-    const updatedUser = await collection.updateOne(
-      { $or: [{ wallet }, { username }] },
-      { $set: { score } },
-      { new: true }
-    );
-
-    if (updatedUser.matchedCount === 0) {
-      return res.status(404).json({
-        message: "User not found.",
-      });
+    const { wallet, username, score } = req.body;
+    if (!wallet || !username || score === undefined) {
+      return res.status(400).json({ message: "Wallet, username, and score are required." });
     }
 
-    return res.status(200).json({
-      message: "Score updated successfully",
-      updatedUser,
-    });
+    const updatedUser = await Board.findOneAndUpdate(
+      { $or: [{ wallet }, { username }] },
+      { $set: { score, username, wallet } }, // Ensure all fields are updated
+      { new: true, upsert: true } // Return updated doc, create if not exists
+    );
+
+    res.status(200).json({ message: "Score updated successfully", updatedUser });
   } catch (error) {
     console.error("Error updating score:", error);
-    return res.status(500).json({
-      message: "Internal Server Error",
-    });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
+app.post("/api/bounty", async (req, res) => {
+  try {
+    const { walletAddress, contractAddress, abi } = req.body;
+    if (!walletAddress || !contractAddress || !abi) {
+      return res.status(400).json({ message: "Wallet address, contract address, and ABI are required." });
+    }
+
+    const bounty = await Bounty.findOneAndUpdate(
+      { walletAddress },
+      { $set: { contractAddress, abi } },
+      { new: true, upsert: true }
+    );
+
+    res.status(200).json({ message: "Bounty details stored successfully", bounty });
+  } catch (error) {
+    console.error("Error storing bounty details:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+
+
+// Error Handling Middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
     success: false,
     message: "Internal Server Error",
-    error: process.env.NODE_ENV === "production" ? {} : err,
+    error: process.env.NODE_ENV === "production" ? {} : err.message,
   });
 });
 
+// Start Server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
