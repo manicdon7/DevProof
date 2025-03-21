@@ -87,7 +87,7 @@ export default function DashBoard() {
       };
 
       sessionStorage.setItem("dataStore", JSON.stringify(dataStore));
-      const stakeres = sessionStorage.getItem("stake");
+      const stakeres = localStorage.getItem("stake");
 
       if (stakeres) {
         const storedData = sessionStorage.getItem("dataStore");
