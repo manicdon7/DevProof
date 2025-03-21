@@ -252,9 +252,9 @@ app.post("/api/leaderboard", async (req, res) => {
 app.get("/api/top-users", async (req, res) => {
   try {
     const users = await Board.find()
-      .sort({ score: -1 }) // Sort by score descending
-      .select("wallet username score -_id") // Select only needed fields, exclude _id
-      .limit(10); // Limit to top 10 users (adjust as needed)
+        .sort({ score: -1 })
+        .select("wallet username score -_id")
+        .limit(10); 
 
     res.json({ success: true, users, top5: users.slice(0, 5) });
   } catch (error) {
@@ -272,10 +272,9 @@ app.post("/api/leaderboard/score", async (req, res) => {
 
     const updatedUser = await Board.findOneAndUpdate(
       { $or: [{ wallet }, { username }] },
-      { $set: { score, username, wallet } }, // Ensure all fields are updated
-      { new: true, upsert: true } // Return updated doc, create if not exists
+      { $set: { score, username, wallet } },
+      { new: true, upsert: true }
     );
-
     res.status(200).json({ message: "Score updated successfully", updatedUser });
   } catch (error) {
     console.error("Error updating score:", error);
@@ -289,7 +288,6 @@ app.post("/api/bounty", async (req, res) => {
     if (!walletAddress || !contractAddress || !abi) {
       return res.status(400).json({ message: "Wallet address, contract address, and ABI are required." });
     }
-
     const bounty = await Bounty.findOneAndUpdate(
       { walletAddress },
       { $set: { contractAddress, abi } },
