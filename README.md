@@ -1,7 +1,7 @@
 # Dev Proof
 
 ## Overview
-Dev Proof is a blockchain-based platform that tracks and rewards developers for their contributions on GitHub. It utilizes smart contracts to fairly distribute rewards based on contribution quality, using a weekly leaderboard system. Developers can stake Core tokens, earn rewards, and yield additional benefits based on their contributions.
+DevProof is a blockchain-powered platform that tracks and rewards developers for their contributions on GitHub. It leverages smart contracts to ensure fair and transparent reward distribution based on the quality of contributions. Developers can stake Core tokens, earn rewards, and generate additional yield through a weekly leaderboard system. AI is integrated into the platform to validate the legitimacy of commits, ensuring that only meaningful contributions are considered for rewards. This helps maintain fairness and prevents spam or low-quality submissions. With DevProof, developers are incentivized to make impactful contributions while benefiting from a decentralized and trustless reward system.
 
 ## Features
 - Weekly GitHub contribution tracking
