@@ -13,6 +13,7 @@ import NotFound from "../pages/NotFound";
 import { TermsAndConditions } from "../pages/GithubPermission";
 import LeaderBoard from "../pages/LeaderBoard";
 import IssuesPage from "../pages/Rewards";
+import TaskSubmission from "../pages/Rewards";
 
 const App = () => {
   useEffect(() => {
@@ -35,9 +36,9 @@ const App = () => {
         <Route
           path="/staketoken"
           element={
-            <ProtectedRouteSession>
+            <ProtectedRoute>
               <Stake />
-            </ProtectedRouteSession>
+            </ProtectedRoute>
           }
         />
         <Route
@@ -52,9 +53,9 @@ const App = () => {
         <Route
           path="/bounty"
           element={
-            <ProtectedRouteSession>
-              <IssuesPage />
-            </ProtectedRouteSession>
+            <ProtectedRoute>
+              <TaskSubmission />
+            </ProtectedRoute>
           }
         />
 

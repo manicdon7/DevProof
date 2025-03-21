@@ -198,7 +198,7 @@ const Stake = () => {
       const storedData = sessionStorage.getItem("dataStore");
 
       if (storedData) {
-        sessionStorage.setItem("stake", true);
+        localStorage.setItem("stake", true);
         const response = JSON.parse(storedData);
 
         try {
