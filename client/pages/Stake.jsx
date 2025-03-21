@@ -164,11 +164,9 @@ const Stake = () => {
 
   const handleStake = async () => {
     if (!ensureWalletConnected()) return;
-
+  
     if (!githubUsername) {
-      toast.warn(
-        "GitHub username is required. Please enter your GitHub username."
-      );
+      toast.warn("GitHub username is required. Please enter your GitHub username.");
       return;
     }
     const stakeAmount = parseFloat(amount);
@@ -176,7 +174,7 @@ const Stake = () => {
       toast.warn("Please enter a valid amount (minimum 0.01 tCORE).");
       return;
     }
-
+  
     setLoading(true);
     try {
       const receipt = await stakeTokens(
@@ -190,17 +188,15 @@ const Stake = () => {
           value: ethers.parseEther(amount),
         }
       );
-      toast.success(
-        `Successfully staked ${amount} tCORE with GitHub: ${githubUsername}!`
-      );
+      toast.success(`Successfully staked ${amount} tCORE with GitHub: ${githubUsername}!`);
       showTxInfo(`Staked ${amount} tCORE`, receipt.transactionHash);
-
+  
       const storedData = sessionStorage.getItem("dataStore");
-
+  
       if (storedData) {
         localStorage.setItem("stake", true);
         const response = JSON.parse(storedData);
-
+  
         try {
           const res = await axios.post(
             "https://dev-proof-backend.vercel.app/api/leaderboard",
@@ -210,18 +206,19 @@ const Stake = () => {
               score: response.score ?? 0,
             }
           );
-
-          if (res.data) {
-            navigate("/leaderboard");
-            window.location.reload();
-          }
+          console.log("Leaderboard API response:", res.data); // Debug the response
+          toast.success("Leaderboard updated successfully!");
         } catch (error) {
           console.error("Error submitting leaderboard:", error);
+          toast.error("Failed to update leaderboard, but stake was successful.");
         }
       } else {
         console.error("No data found in sessionStorage");
+        toast.warn("No user data found in sessionStorage.");
       }
-
+  
+      // Navigate to leaderboard regardless of API success
+      navigate("/leaderboard");
       setAmount("");
       setRefreshTrigger((prev) => prev + 1);
     } catch (error) {
@@ -354,8 +351,7 @@ const Stake = () => {
     } catch (error) {
       console.error("Distribute top contributors error:", error);
       toast.error(
-        `Distribution failed: ${
-          error.message || error.reason || "Unknown error"
+        `Distribution failed: ${error.message || error.reason || "Unknown error"
         }`
       );
     } finally {
@@ -403,7 +399,7 @@ const Stake = () => {
               rel="noopener noreferrer"
               className="text-[#ff9211] text-sm mt-2 block hover:underline"
             >
-              Tx: {txInfo.hash.slice(0, 6)}...{txInfo.hash.slice(-4)}
+              Tx: txInfo.hash
             </a>
           </motion.div>
         )}
@@ -780,7 +776,7 @@ const Stake = () => {
           className="fixed top-6 right-6 bg-[#1a1a1a] p-4 rounded-xl shadow-2xl border border-[#ff9211]/50 z-50"
         >
           <p className="text-gray-200 font-medium">{txInfo.message}</p>
-          {txInfo.hash ? (
+          {txInfo.hash && typeof txInfo.hash === 'string' && txInfo.hash.length > 10 ? (
             <a
               href={`https://scan.test2.btcs.network/tx/${txInfo.hash}`}
               target="_blank"
