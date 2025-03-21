@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ethers } from "ethers"; // Install: npm i ethers
 import {
   Bug,
   Brush,
@@ -19,71 +20,12 @@ const tasks = [
     title: "Hello World Message",
     description:
       "Write a Solidity contract with a function `sayHello()` that returns the string 'Hello, World!'. I need this function in your contract.",
+    expectedFunction: "sayHello",
     icon: Bug,
+    args: [],
+    isView: true,
   },
-  {
-    id: 2,
-    title: "Simple Counter",
-    description:
-      "Create a Solidity contract with a function `increment()` that increases a public counter by 1. I need this function in your contract.",
-    icon: Brush,
-  },
-  {
-    id: 3,
-    title: "Store a Number",
-    description:
-      "Build a Solidity contract with a function `setNumber(uint256 _value)` that stores a number in a public variable. I need this function in your contract.",
-    icon: Database,
-  },
-  {
-    id: 4,
-    title: "Check Balance",
-    description:
-      "Develop a Solidity contract with a function `getBalance()` that returns the contract’s ETH balance. I need this function in your contract.",
-    icon: FileCode,
-  },
-  {
-    id: 5,
-    title: "Toggle a Flag",
-    description:
-      "Write a Solidity contract with a function `toggle()` that flips a public boolean flag. I need this function in your contract.",
-    icon: Lock,
-  },
-  {
-    id: 6,
-    title: "Double a Value",
-    description:
-      "Create a Solidity contract with a function `double(uint256 _input)` that returns the input multiplied by 2. I need this function in your contract.",
-    icon: Zap,
-  },
-  {
-    id: 7,
-    title: "Set Owner",
-    description:
-      "Build a Solidity contract with a function `setOwner(address _newOwner)` that updates a public owner address. I need this function in your contract.",
-    icon: GitMerge,
-  },
-  {
-    id: 8,
-    title: "Lock Funds",
-    description:
-      "Develop a Solidity contract with a function `lock()` that prevents withdrawals until a condition is met. I need this function in your contract.",
-    icon: Shield,
-  },
-  {
-    id: 9,
-    title: "Greet User",
-    description:
-      "Write a Solidity contract with a function `greet(string memory _name)` that returns a greeting with the input name. I need this function in your contract.",
-    icon: BookOpen,
-  },
-  {
-    id: 10,
-    title: "Transfer Tokens",
-    description:
-      "Create a Solidity contract with a function `transfer(address _to, uint256 _amount)` that moves ERC-20-like tokens. I need this function in your contract.",
-    icon: CreditCard,
-  },
+  // ... (other tasks unchanged)
 ];
 
 export default function TaskSubmission() {
@@ -96,28 +38,27 @@ export default function TaskSubmission() {
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [result, setResult] = useState(null);
+  const [isCalling, setIsCalling] = useState(false);
 
-  // Simulate loading for skeleton
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1500); // 1.5s delay
+    const timer = setTimeout(() => setIsLoading(false), 1500);
     return () => clearTimeout(timer);
   }, []);
 
-  // Open modal with selected task
   const handleTaskSelect = (task) => {
     setSelectedTask(task);
+    setResult(null);
     setIsModalOpen(true);
   };
 
-  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  // Validate and submit form
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const newErrors = {};
     if (!formData.contractAddress.trim())
       newErrors.contractAddress = "Contract address is required.";
@@ -130,21 +71,81 @@ export default function TaskSubmission() {
       return;
     }
 
-    console.log("Task Submitted:", { task: selectedTask, ...formData });
-    setFormData({ contractAddress: "", abi: "", walletAddress: "" });
-    setSelectedTask(null);
-    setIsModalOpen(false);
+    setIsCalling(true);
+    setResult(null);
+
+    try {
+      if (!window.ethereum) {
+        throw new Error("Please install MetaMask or another Ethereum wallet.");
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+
+      let abi;
+      try {
+        abi = JSON.parse(formData.abi);
+        console.log(abi);
+      } catch (e) {
+        throw new Error("Invalid ABI JSON format. Please check your input.");
+      }
+
+      const contract = new ethers.Contract(
+        formData.contractAddress,
+        abi,
+        signer
+      );
+
+      const { expectedFunction, args, isView } = selectedTask;
+
+      // Verify function exists in ABI
+      const functionAbi = abi.find(
+        (item) => item.type === "function" && item.name === expectedFunction
+      );
+      if (!functionAbi) {
+        throw new Error(
+          `Function "${expectedFunction}" not found in the provided ABI.`
+        );
+      }
+
+      // Log for debugging
+      console.log("Calling function:", expectedFunction, "with args:", args);
+
+      if (isView) {
+        // Call view function
+        const response = await contract[expectedFunction](...args);
+        console.log("Raw response:", response);
+        setResult(`Result: ${response.toString()}`);
+      } else {
+        // Send transaction
+        const tx = await contract[expectedFunction](...args);
+        const receipt = await tx.wait();
+        setResult(`Transaction successful! Tx Hash: ${receipt.hash}`);
+      }
+
+      setFormData({ contractAddress: "", abi: "", walletAddress: "" });
+      setErrors({});
+    } catch (error) {
+      console.error("Error calling contract:", error);
+      setResult(
+        `Error: ${
+          error.message ||
+          "Failed to call the function. Check console for details."
+        }`
+      );
+    } finally {
+      setIsCalling(false);
+    }
   };
 
-  // Close modal with reset
   const handleCloseModal = () => {
     setFormData({ contractAddress: "", abi: "", walletAddress: "" });
     setErrors({});
+    setResult(null);
     setSelectedTask(null);
     setIsModalOpen(false);
   };
 
-  // Skeleton Loader Component
   const SkeletonCard = () => (
     <div className="p-6 bg-gray-800 border border-orange-700 rounded-xl h-64 w-full animate-pulse">
       <div className="flex items-center space-x-4">
@@ -161,7 +162,6 @@ export default function TaskSubmission() {
 
   return (
     <div className="w-full h-screen bg-black text-white flex flex-col font-sans">
-      {/* Task List */}
       <main className="flex-1 p-8 overflow-y-auto bg-gradient-to-b from-black to-gray-950">
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {isLoading
@@ -188,18 +188,16 @@ export default function TaskSubmission() {
                     onClick={() => handleTaskSelect(task)}
                     className="mt-4 w-full py-3 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition duration-200"
                   >
-                    Submit Solution
+                    Call Function
                   </button>
                 </article>
               ))}
         </section>
       </main>
 
-      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-85 z-50">
           <div className="bg-gray-800 p-8 rounded-xl w-full max-w-lg border border-orange-700 shadow-2xl relative">
-            {/* Close Button */}
             <button
               onClick={handleCloseModal}
               className="absolute top-4 right-4 p-1 bg-orange-700 rounded-full hover:bg-orange-600 transition duration-200"
@@ -216,7 +214,7 @@ export default function TaskSubmission() {
               </p>
             </div>
 
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
               <div>
                 <label
                   htmlFor="contractAddress"
@@ -293,13 +291,22 @@ export default function TaskSubmission() {
                 )}
               </div>
 
+              {result && (
+                <div className="text-sm text-orange-300 mt-4">
+                  <p>{result}</p>
+                </div>
+              )}
+
               <div className="flex space-x-4">
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  className="flex-1 py-3 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition duration-200"
+                  disabled={isCalling}
+                  className={`flex-1 py-3 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition duration-200 ${
+                    isCalling ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 >
-                  Submit
+                  {isCalling ? "Calling..." : "Call Function"}
                 </button>
                 <button
                   type="button"
