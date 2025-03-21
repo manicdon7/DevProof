@@ -229,7 +229,9 @@ app.post("/api/leaderboard", async (req, res) => {
   try {
     const { wallet, username, score } = req.body;
     if (!wallet || !username) {
-      return res.status(400).json({ error: "Wallet and username are required." });
+      return res
+        .status(400)
+        .json({ error: "Wallet and username are required." });
     }
 
     let user = await Board.findOne({ wallet });
@@ -245,16 +247,19 @@ app.post("/api/leaderboard", async (req, res) => {
     res.status(200).json({ success: true, result: user });
   } catch (err) {
     console.error("Leaderboard insert error:", err);
-    res.status(500).json({ error: "Error inserting leaderboard data", details: err.message });
+    res.status(500).json({
+      error: "Error inserting leaderboard data",
+      details: err.message,
+    });
   }
 });
 
 app.get("/api/top-users", async (req, res) => {
   try {
     const users = await Board.find()
-        .sort({ score: -1 })
-        .select("wallet username score -_id")
-        .limit(10); 
+      .sort({ score: -1 }) // Sort by score descending
+      .select("wallet username score -_id") // Select only needed fields, exclude _id
+      .limit(10); // Limit to top 10 users (adjust as needed)
 
     res.json({ success: true, users, top5: users.slice(0, 5) });
   } catch (error) {
@@ -267,15 +272,20 @@ app.post("/api/leaderboard/score", async (req, res) => {
   try {
     const { wallet, username, score } = req.body;
     if (!wallet || !username || score === undefined) {
-      return res.status(400).json({ message: "Wallet, username, and score are required." });
+      return res
+        .status(400)
+        .json({ message: "Wallet, username, and score are required." });
     }
 
     const updatedUser = await Board.findOneAndUpdate(
       { $or: [{ wallet }, { username }] },
-      { $set: { score, username, wallet } },
-      { new: true, upsert: true }
+      { $set: { score, username, wallet } }, // Ensure all fields are updated
+      { new: true, upsert: true } // Return updated doc, create if not exists
     );
-    res.status(200).json({ message: "Score updated successfully", updatedUser });
+
+    res
+      .status(200)
+      .json({ message: "Score updated successfully", updatedUser });
   } catch (error) {
     console.error("Error updating score:", error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -284,24 +294,27 @@ app.post("/api/leaderboard/score", async (req, res) => {
 
 app.post("/api/bounty", async (req, res) => {
   try {
-    const { walletAddress, contractAddress, abi } = req.body;
-    if (!walletAddress || !contractAddress || !abi) {
-      return res.status(400).json({ message: "Wallet address, contract address, and ABI are required." });
+    const { taskname, walletAddress, contractAddress, abi } = req.body;
+    if (!walletAddress || !contractAddress || !abi || !taskname) {
+      return res.status(400).json({
+        message: "Wallet address, contract address, and ABI are required.",
+      });
     }
+
     const bounty = await Bounty.findOneAndUpdate(
       { walletAddress },
-      { $set: { contractAddress, abi } },
+      { $set: { contractAddress, abi, taskname } },
       { new: true, upsert: true }
     );
 
-    res.status(200).json({ message: "Bounty details stored successfully", bounty });
+    res
+      .status(200)
+      .json({ message: "Bounty details stored successfully", bounty });
   } catch (error) {
     console.error("Error storing bounty details:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
-
-
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
